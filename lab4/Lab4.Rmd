@@ -78,6 +78,7 @@ weplot(
   x=Hour, y=list(Elec.Observed.kW, Elec.Model.kW),
   type='line',
   xlab='Hour of the day', 
+  title="Model 1",
   ylab="Electrical power(kw)"
 )
 
@@ -105,10 +106,69 @@ print(Elec.Model.kWh)
 Solar panel model that accounts for panel and sun angles
 
 ```{r Solar_Model_2}
+#new functions for model 2:
+# Tilt<- #tilt of solar panels from horizontal to vertical
+# Aspect<- #direction of solar panels: North, East, South, West
+# Elevation<- #elevation of sun in sky(from below horizon to directly overhead)
+# Azimuth<- #direction of sun: North, East, South, West
+
+source("solar panel functions.R") #loads functions for calcualting anges
+
+#Input objs
+Efficiency<-.15 #panel effieiciency
+Panel.Area<-1.41#area of individual panels 
+Num.Panels<-48#num panels total
+
+#intial cals
+Total.Area<-Panel.Area*Num.Panels #total panel area
+Time<-length(Hour) #length of dataset 
+
+#output objs
+Elec.Model2.W<-numeric() #creates empty obj of length 0
+Incident.Solar.Radiation.Wm2<- numeric()
+
+dayToCalculate <- 6
+# sun_elevation<- function(day, hour){
+#   Elevation <- sun_
+# }
 
 
 
 
+
+for (t in 1:Time){
+  Tilt<-25
+  Aspect<-155
+  sunElevation<- sun_elevation(6, Hour[t]) #change the 6 to be day
+  sunAzimuth<-sun_azimuth(6, Hour[t]) #change 6 to be day for other funct
+  Incident.Solar.Radiation.Wm2[t] <- get_incident_rad(
+    Solar.Radiation.Wm2[t], Tilt, Aspect, sunElevation, sunAzimuth
+    )
+  
+  #calculate electricity produced
+  Elec.Model2.W[t]<-Total.Area *Incident.Solar.Radiation.Wm2[t] *Efficiency 
+}
+
+#convert from watts to killowats 
+#result kilowatts 
+Elec.Observed.kW<-Elec.Observed.W2/1000 #watts to kw
+Elec.Model2.kW<-Elec.Model2.W/1000 #watss to kw
+
+weplot(
+  x=Hour, y=list(Elec.Observed.kW, Elec.Model2.kW),
+  type='line',
+  title="Model2",
+  xlab="Hour of the day",
+  ylab="Electrical power(kw)"
+)
+
+
+#Display total energy produced over 24H (kWh)
+Elec.Observed.kWh<-mean(Elec.Observed.kW)*Time #total energy in kwh
+Elec.Model2.kWh<-mean(Elec.Model2.kW)*Time #total energy kwh
+
+print(Elec.Observed.kWh)
+print(Elec.Model2.kWh)
 ```
 
 
@@ -117,6 +177,9 @@ Solar panel model that accounts for panel and sun angles
 Solar panel model that accounts for panel and sun angles AND works with data on any day of the year
 
 ```{r Solar_Model_3}
+load("Lab 4 Data - All 2012.RData")
+weplot(x=Hour, y=Solar.Radiation.Wm2, type="point+line") #Radiant power
+# weplot(x=Hour, y=Elec.Observed.W, type="point+line") #actual power observed 
 
 
 
