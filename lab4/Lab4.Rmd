@@ -1,6 +1,6 @@
 ---
 title: "ES 220 Lab 4 - Solar Panel Model"
-author: "YOUR NAME HERE"
+author: "Linda Dominguez"
 date: "Feb 14, 2024"
 output:
   pdf_document: default
@@ -19,7 +19,9 @@ source("setup/setup.R")
 ## Load solar radiation and observed electrical  power data
 
 ```{r Load_Data}
-
+load("Lab 4 Data - Jan 6 2021.RData")
+weplot(x=Hour, y=Solar.Radiation.Wm2, type="point+line") #Radiant power
+weplot(x=Hour, y=Elec.Observed.W, type="point+line") #actual power observed 
 
 
 
@@ -29,7 +31,17 @@ source("setup/setup.R")
 ## Define initial input and output ("I/O") objects
 
 ```{r Initial_IO}
+#Input objs
+Efficiency<-.15 #panel effieiciency
+Panel.Area<-1.41#area of individual panels 
+Num.Panels<-48#num panels total
 
+#intial cals
+Total.Area<-Panel.Area*Num.Panels #total panel area
+Time<-length(Hour) #length of dataset 
+
+#output objs
+Elec.Model.W<-numeric() #creates empty obj of length 0
 
 
 
@@ -41,6 +53,16 @@ source("setup/setup.R")
 This assumes panels are lying flat on the ground
 
 ```{r Solar_Model_1}
+#Loop 
+for (t in 1:Time){
+  #calculate electricity produced
+  Elec.Model.W[t]<-Total.Area * Solar.Radiation.Wm2[t]*Efficiency
+}
+
+#convert from watts to killowats 
+#result kilowatts 
+Elec.Observed.kW<-Elec.Observed.W/1000 #watts to kw
+Elec.Model.kW<-Elec.Model.W/1000 #watss to kw
 
 
 
@@ -51,7 +73,13 @@ This assumes panels are lying flat on the ground
 ## Plot results
 
 ```{r Plot_Results}
-
+#compare modeled and observed power
+weplot(
+  x=Hour, y=list(Elec.Observed.kW, Elec.Model.kW),
+  type='line',
+  xlab='Hour of the day', 
+  ylab="Electrical power(kw)"
+)
 
 
 
@@ -61,8 +89,12 @@ This assumes panels are lying flat on the ground
 ## Total Energy
 
 ```{r Total_Energy}
+#Display total energy produced over 24H (kWh)
+Elec.Observed.kWh<-mean(Elec.Observed.kW)*Time #total energy in kwh
+Elec.Model.kWh<-mean(Elec.Model.kW)*Time #total energy kwh
 
-
+print(Elec.Observed.kWh)
+print(Elec.Model.kWh)
 
 
 ```
