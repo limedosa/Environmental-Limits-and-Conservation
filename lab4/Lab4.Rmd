@@ -1,0 +1,93 @@
+---
+title: "ES 220 Lab 4 - Solar Panel Model"
+author: "YOUR NAME HERE"
+date: "Feb 14, 2024"
+output:
+  pdf_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+
+```{r, include = FALSE}
+# This chunk installs weplot and helps with pdf formatting (and is excluded from knitting)
+source("setup/setup.R")
+
+```
+
+
+## Load solar radiation and observed electrical  power data
+
+```{r Load_Data}
+
+
+
+
+```
+
+
+## Define initial input and output ("I/O") objects
+
+```{r Initial_IO}
+
+
+
+
+```
+
+
+## Solar Panel Model 1
+
+This assumes panels are lying flat on the ground
+
+```{r Solar_Model_1}
+
+
+
+
+```
+
+
+## Plot results
+
+```{r Plot_Results}
+
+
+
+
+```
+
+
+## Total Energy
+
+```{r Total_Energy}
+
+
+
+
+```
+
+
+## Solar Panel Model 2
+
+Solar panel model that accounts for panel and sun angles
+
+```{r Solar_Model_2}
+
+
+
+
+```
+
+
+## Solar Panel Model 3 - Assignment
+
+Solar panel model that accounts for panel and sun angles AND works with data on any day of the year
+
+```{r Solar_Model_3}
+
+
+
+
+```
+

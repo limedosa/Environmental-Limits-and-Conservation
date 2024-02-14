@@ -1,28 +1,28 @@
----
-title: "ES 220 Lab 2"
-author: "Linda Dominguez"
-date: "Jan 31, 2024"
-output: pdf_document
-header-includes:
-  \usepackage{fvextra}
-  \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
-editor_options: 
-  chunk_output_type: console
----
+# ---
+# title: "ES 220 Lab 2"
+# author: "Linda Dominguez"
+# date: "Jan 31, 2024"
+# output: pdf_document
+# header-includes:
+#   \usepackage{fvextra}
+#   \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+# editor_options: 
+#   chunk_output_type: console
+# ---
 
 
 ### (1a) How much usable wood (m^3^) is available on Water Tower Hill right now?
-There is between 25,402,976,396 m^3^ and 37,023,585,129 m^3^ of usable wood is available on Water Tower Hill right now.
-<!-- Firstly,  -->
+# There is between 25,402,976,396 m^3^ and 37,023,585,129 m^3^ of usable wood is available on Water Tower Hill right now.
+# <!-- Firstly,  -->
 
 
-```{r}
-# After every calculation, be sure to show the resulting low and high values
-# e.g. print(My_Variable) or round(My_Variable)
+# ```{r}
+# # After every calculation, be sure to show the resulting low and high values
+# # e.g. print(My_Variable) or round(My_Variable)
 
 
 
-```
+# ```
 #volume of hole code:
 
 volumeHole<- function(a,b,c){
@@ -73,26 +73,26 @@ print(paste("There is between", round(woodUsableMax), 'and', round(woodUsableMin
 #max length * max width * pi for surface
 
 
-<!-- Take the surface divided by 2.  -->
-<!-- Take volume of trees and multiply by numbers of trees  to find final amount of usable wood (m^3^) -->
+# <!-- Take the surface divided by 2.  -->
+# <!-- Take volume of trees and multiply by numbers of trees  to find final amount of usable wood (m^3^) -->
 
 
 
 
 
 ### (1b) How much sand (m^3^) is available to excavate from Water Tower Hill?
-There's between 27.72 m^3^ and 83.15 m^3^ of sand available to excavate from Water Tower Hill.
+# There's between 27.72 m^3^ and 83.15 m^3^ of sand available to excavate from Water Tower Hill.
 
 
 
 
-```{r}
-# After every calculation, be sure to show the resulting low and high values
-# e.g. print(My_Variable) or round(My_Variable)
+# ```{r}
+# # After every calculation, be sure to show the resulting low and high values
+# # e.g. print(My_Variable) or round(My_Variable)
 
 
 
-```
+# ```
 #volume of hole code:
 #From before volume of the hole function: 
 surfaceHole<- function(a,b,c){
@@ -123,18 +123,18 @@ sandVolumeLow = round(totalSand(averageSurface, .1), 2)
 print(paste("Sand volume ranges:", sandVolumeLow,",",  sandVolumeHigh))
 
 ### (1c) How many Deluxe Zen Gardens could you make from resources extracted from Water Tower Hill?
-Between 25,402,976,396 m^3^ and 37,023,585,129 m^3^ of usable wood is available on Water Tower Hill right now. We need to consider the amount of wood needed for one box(which we estimated would be .000702m^2^/box) and the of sand needed for one box, (which we estimated would be .0010764 m^2^). I then wrote the function totalGardens, which adds one garden until the sand or wood quantity run out. Finally, I averaged everything (min and max for all measurements) to give the best estimate. I added the min and max and divided by two for all measurements, which gave me 51,498 or nearly 51,500 gardens. 
+# Between 25,402,976,396 m^3^ and 37,023,585,129 m^3^ of usable wood is available on Water Tower Hill right now. We need to consider the amount of wood needed for one box(which we estimated would be .000702m^2^/box) and the of sand needed for one box, (which we estimated would be .0010764 m^2^). I then wrote the function totalGardens, which adds one garden until the sand or wood quantity run out. Finally, I averaged everything (min and max for all measurements) to give the best estimate. I added the min and max and divided by two for all measurements, which gave me 51,498 or nearly 51,500 gardens. 
 
 
-FINAL: 51,498 gardens
+# FINAL: 51,498 gardens
 
-```{r}
-# After every calculation, be sure to show the resulting low and high values
-# e.g. print(My_Variable) or round(My_Variable)
-```
+# ```{r}
+# # After every calculation, be sure to show the resulting low and high values
+# # e.g. print(My_Variable) or round(My_Variable)
+# ```
 
-#sand use calculated  to be .0010764 m
-#wood use calculated to be .000702 m
+# #sand use calculated  to be .0010764 m
+# #wood use calculated to be .000702 m
 
 totalGardens <- function(wood, sand) {
   count <- 0
@@ -155,13 +155,13 @@ allGardens<- totalGardens(woodFinal, sandFinal)
 
 
 print (allGardens)
-***
+# ***
 
-### (2a) What is the expected population size after 42 years given a starting population of 5,700 and a constant annual growth 2.3%?
-The expected population 42 year(s) after is 244,906.
-```{r}
-#The expected population 42 year(s) after is 244,906.
-```
+# ### (2a) What is the expected population size after 42 years given a starting population of 5,700 and a constant annual growth 2.3%?
+# # The expected population 42 year(s) after is 244,906.
+# ```{r}
+# #The expected population 42 year(s) after is 244,906.
+# ```
 
 popGrowth <- function(yearToCalculate){
 startPop <- 5700
@@ -179,11 +179,11 @@ print(growth42)
 
 ### (2b) What per capita birth rate would be required to achieve a lambda value of 1.022, given a per capita death rate of 0.08?
 
-```{r}
-# After every calculation, be sure to show the resulting low and high values
-# e.g. print(My_Variable) or round(My_Variable)
+# ```{r}
+# # After every calculation, be sure to show the resulting low and high values
+# # e.g. print(My_Variable) or round(My_Variable)
 
-```
+# ```
 capitaBirthRate<- function(lambda, deathRate){
 return (lambda + deathRate )
 }
@@ -194,12 +194,12 @@ deathRate <- .08
 requiredBirthRate <- capitaBirthRate(desiredLambda, deathRate)
 print(requiredBirthRate)
 ### (2c) If human birth and death rates remain constant (assume average values from 2020), what would the total world population be in the year 2100?
-With a steady rate of births and deaths, the estimated world population in 2100 is 203.3306 billion people. 
-```{r}
-# After every calculation, be sure to show the resulting low and high values
-# e.g. print(My_Variable) or round(My_Variable)
+# With a steady rate of births and deaths, the estimated world population in 2100 is 203.3306 billion people. 
+# ```{r}
+# # After every calculation, be sure to show the resulting low and high values
+# # e.g. print(My_Variable) or round(My_Variable)
 
-```
+# ```
 estimatedWorldPop<- function(year, birthrate, deathrate){
 year <- year-2020
 
@@ -217,23 +217,23 @@ estimateFuturePop <- estimatedWorldPop(2100, birthRate, deathRate)
 print(estimateFuturePop)
 
 
-***
+# ***
 
 ### (3) How many people have ever existed?
 
-Take average life expectancy throughout time 
-Throughout history, average couple has 5 children. The average generation is 25 years. Each person produces 2.5 people 25 years later. 
-Divide 200000/25 to get number of generations and multiply by 2.5. Get a final rough estimate of 79,991,000 people. This doesn't account for different growth rates. 
+# Take average life expectancy throughout time 
+# Throughout history, average couple has 5 children. The average generation is 25 years. Each person produces 2.5 people 25 years later. 
+# Divide 200000/25 to get number of generations and multiply by 2.5. Get a final rough estimate of 79,991,000 people. This doesn't account for different growth rates. 
 
 
 
 
 totalGenerations <- 200000/25
 print(totalGenerations)
-100 people is initial pop at 
+# 100 people is initial pop at 
 
-startingPop + 2.5(popAll )
-100+2.5(year measuring) 
+# startingPop + 2.5(popAll )
+# 100+2.5(year measuring) 
 
 
 
