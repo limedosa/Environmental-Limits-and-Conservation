@@ -1,0 +1,186 @@
+---
+title: "Lab 10 - Sea Turtles"
+author: "Linda Dominguez"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r, include = FALSE}
+# This chunk installs weplot and helps with pdf formatting (and is excluded from knitting)
+source("setup/setup.R")
+source("setup/weplot.R")
+load("Lab 10 - Loggerhead.RData")
+ls()
+```
+
+
+Part 1 - Load the data and calculate the population growth rate aka Lambda
+
+```{r}
+rownames(A) <- c('egg/hatch', 'smallJuvenile', 'largeJuvenile', 'subAdult', 'noviceBreeder', 'remigrant', 'matureBreeder')
+colnames(A) <- rownames(A)
+
+getLambdaFunct<- function(x){
+  "THis gets Lambda for A"
+  return (as.numeric(eigen(x)$values[1]))
+}
+getLambdaFunct(A)
+#lambda is .945
+weplot.MM(A, title ='Population size based on stage')
+```
+
+
+Part 2 - Correct the matrix values associated with reproduction and get new growth rate
+
+```{r}
+A[,7][1] <- (444*.6747) #change 80 to 444 * survivorship rate 
+A[,7][1] 
+getLambdaFunct(A)
+#lamb is 1.00264
+
+```
+<!-- 
+  LAB 9 code example 
+### (1b) Make a model that projects this population 10 years into the future
+
+# ```{r 1b}
+# #represent N as matrix w rows = stage class, cols = time
+
+# time<- 7#bc we want 10 yr into future => same as Time
+# rowCol <- c(2, time+1) #same as Row.col
+# N<- array(0, rowCol) #makes 2D array of zeros
+# rownames(N)<- c(1, 2, 3, 4, 5, 6, 7) #names stafes
+
+# #insert staring pop 
+# N[,1]<- c(290, 55, 12)
+# N
+# # N[6] <- 16 #sets individual at 6th place  to be 16 e.g. => just exploring to learn R better 
+
+
+# populationProjection<- function(time, startingPop){
+#   rowCol <- c(3, time+1) #same as Row.col
+#   N<- array(0, rowCol) #makes 2D array of zeros
+#   rownames(N)<- c("Sdlg", 'Sm', 'Lg') #names stafes
+#   colnames(N)<- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+#   #insert staring pop 
+#   N[,1]<- c(startingPop)
+#   for (t in 1:time){
+#   N[,t+1]<- A%*%N[,t]}
+
+#   return (N)
+# }
+
+# startPop<- c(290, 55, 12)
+# N <- populationProjection(time, startPop)
+# N
+
+<!-- ``` -->
+
+Part 3 - Project the population 35 years in the future
+/jedhjed here
+```{r}
+startingPop <- c(2000, 7000, 1200, 70, 10, 10, 20)
+years <- 35 #bc we want 35 yr into future 
+
+popMatrixProjecton <- matrix(0, nrow = years, ncol = length(startingPop))
+colnames(popMatrixProjecton) <- rownames(A)
+rownames(popMatrixProjecton) <- 1:years #renaming col and rows 
+
+
+popMatrixProjecton[1,] <- startingPop #putting starting pop in year 1
+
+
+for (year in 2:years) { #had to be 2 bc crashed w one 
+  popMatrixProjecton[year,] <- A %*% popMatrixProjecton[year-1,]
+}
+
+#plotting 
+ weplot.MM(popMatrixProjecton, title="Population Projection of Sea Turtles")
+
+```
+
+
+Part 4 - Sensitivity analysis
+
+```{r}
+
+# Be sure to careful refer to the tips in the handout
+# You'll use loops not to project through time, but to index your projection matrix by rows and columns to perturb each matrix value one at a time
+
+originalLamb <- getLambdaFunct(A)
+
+sensitivityMatrix <- matrix(0, nrow = nrow(A), ncol = ncol(A))
+
+
+epsilon <- 0.0001# e = epsilon
+
+for (i in 1:nrow(A)) {
+  #need 2 loops bc it's 2d 
+  for (j in 1:ncol(A)) {
+    tempMatrix <- A #making copy to edit instance 
+    tempMatrix[i, j] <- tempMatrix[i, j] + epsilon
+    
+    tempLamb <- getLambdaFunct(tempMatrix)
+    
+    sensitivityMatrix[i, j] <- (tempLamb -originalLamb) / epsilon
+  }
+}
+
+print(sensitivityMatrix)
+
+
+
+```
+
+
+\newpage
+
+
+**Conservation for Loggerhead Sea Turtles**
+
+Quantitative population models and sensitivity analysis were conducted on loggerhead sea turtle populations. It's crucial that we attempt to understand the ramifications of vaerious factors such as conservation effort and survival and growth rates. 
+
+Key findings: 
+* Different management scenarios were conducted. Higher survival rates for eggs/hatchings would indubitably lead to population growth and increase the overall population size. Eggs/ hatchings fluctuate the most in terms of their population dependent on the stage the turtles are in and so it makes sense that their high survival would lead to a rise in the overall population. As mentioned before, adult sea turtles are crucial and ensuring high resources are spent on this would absolutely increase the population. Sensitivity analysis was conducted on through changes in matrix values for different stages. The sensitivity analysis found adult survival rates had the highest signficant effect on population growth. This highlights how crucial it is that we protect **adult** sea turtle populations most.Analysis found that the initial population growth rate, *lambda* was .945. A *lambda* of less than 1 indicates population decline and in this case, the population was indicating a decline. Correction of the matrix values associated with reproduction then yieleded a *lambda* of 1.00264, which indicated very low but positive population growth. Without conservation efforts, the population fluctuates through time. To improve this, we can ensure management n adult survival rates and egg survival rates. The populaton of adults is lower than the population of hatchings, juveniles, and subadults. This also highlights the importance of protecting sea turtles in this specific stage.
+
+Population Projection throughout time: 
+Sea turtle population projection throughout time for a scenario that projects the population out for 35 years. The following graph shows the potential population projection for 35 years given the intial populations for: 
+1 (eggs, hatchings) 2000
+2 (small juveniles) 7000
+3 (large juveniles) 1200
+4 (subadults) 70
+5 (novice breeders) 10
+6 (1st-year remigrants) 10
+7 (mature breeders) 20
+```{r popMatrixProjectonPlot}
+#original A
+weplot.MM(A, title ='Population size based on stage')
+
+weplot.MM(popMatrixProjecton, title="Population Projection of Sea Turtles")
+
+```
+100% survival rate management scenario:
+As we can see, the 100% survival rate doesn't really change the other survival rates. 
+```{r 100% survival}
+originalA <- A
+
+A[1, 1] <- 100 #hatching surlvival = 100 here
+
+popMatrixProjection100 <- matrix(0, nrow = years, ncol = length(startingPop))
+colnames(popMatrixProjection100) <- rownames(A)
+rownames(popMatrixProjection100) <- 1:years
+popMatrixProjection100[1, ] <- startingPop
+
+for (year in 2:years) {
+  popMatrixProjection100[year, ] <- A %*% popMatrixProjection100[year-1, ]
+}
+weplot.MM(A, title= 'Adjusted Population for 100% Hatchling Survival Rate')
+A
+weplot.MM(originalA, title="Original Population matrix") 
+originalA
+```
+Reccomendations: 
+We should prioritize implementing conservation effors directed towards adults since this is the group with the highest impact on potential population growth. Next, we should prioritize the protection of eggs/ hatchings since their survival rates are the ones that fluctuate most. It's important to note there wasn't much distinction between the population size and egg survival rate. We should also enforce strict regulations to reduce bycatch through fishing. This would significantly increase adult population survival rates. 

@@ -1,36 +1,45 @@
 
+# v1.30 # # # # #
+#  
+# - Disabled soft depreciation warnings
+# - Fixed add.weplot and allowed for adding text
+#
+# # # # # # # # #
+
+
+
+# v1.29 # # # # #
+#  
+# - Added add.weplot function for adding points and lines
+#
+# # # # # # # # #
+
+
+
+# v1.27 # # # # #
+#  
+# - Fixed an issue with weplot.Pop
+#
+# # # # # # # # #
+
+
+# v1.26 # # # # #
+#  
+# - Fixed an issue of making 2 plots when adding a geom to weplot
+# - group.names now applies to panels
+# - group colors can now apply to panels (though default is blue for all panels)
+# - asks to install missing packages
+#
+# # # # # # # # #
+
+
+
 weplot <- function(x = NULL, y = NULL, type = "point", data = NULL, group = FALSE, group.type = "color",
                    ylab = NULL, xlab = NULL, group.lab = NULL, group.names = NULL,
                    size = 1,
                    color = NULL, edge.color = "black", transparency = 0, xlim = NULL, ylim = NULL,
                    bins = NULL, log = "", title = NULL, give.data = FALSE, error = "sd", error.width = 0.1,
                    commas = ""){
-  
-  # v1.29 # # # # #
-  #  
-  # - Added add.weplot function for adding points and lines
-  #
-  # # # # # # # # #
-  
-  
-  
-  # v1.27 # # # # #
-  #  
-  # - Fixed an issue with weplot.Pop
-  #
-  # # # # # # # # #
-  
-  
-  # v1.26 # # # # #
-  #  
-  # - Fixed an issue of making 2 plots when adding a geom to weplot
-  # - group.names now applies to panels
-  # - group colors can now apply to panels (though default is blue for all panels)
-  # - asks to install missing packages
-  #
-  # # # # # # # # #
-  
-  
   
   # # # Yes, the code below is UGLY, but it works...  # # #
   
@@ -55,6 +64,8 @@ weplot <- function(x = NULL, y = NULL, type = "point", data = NULL, group = FALS
   suppressPackageStartupMessages(library(scales))
   suppressPackageStartupMessages(library(stringr))
   
+  #disable warning messages about soft depreciated args/functions (e.g. size vs linewidth)
+  rlang::local_options(lifecycle_verbosity = "quiet")
   
   blue <- rgb(14, 40, 121, maxColorValue = 255)
   
@@ -1185,13 +1196,17 @@ weplot.Pop <- function(x = NULL, y = NULL, type = "point+line",
 }
 
 
-add.weplot <- function(x, y, type = "point", color = "black", size = 1, ...){
+add.weplot <- function(x, y, type = "point", color = "black", size = 1, label = NULL, ...){
   
-  if (type == "point"){
-    size <- size*1.5
-  } else {
-    size <- size*0.5
-  }
+  if(is.null(label)) label <- y
+  
+  switch(type,
+         point = {size <- size*1.5},
+         line = {size <- size*0.5},
+         path = {size <- size*0.5},
+         text = {size <- size*4}
+  )
+  
   
   switch(type,
          point = {geom <- geom_point},
@@ -1200,21 +1215,31 @@ add.weplot <- function(x, y, type = "point", color = "black", size = 1, ...){
          text = {geom <- geom_text}
   )
   
+
+  d <- tibble(x = x, y = y, label = label)
   
-  d <- tibble(x = x, y = y)
   
-  
-  
-  geom(aes(x = x, y = y),
-       color = color, size = size,
-       inherit.aes = FALSE,
-       data = d, ...)
+  if (type != "text"){
+    
+    geom(aes(x = x, y = y),
+                color = color, size = size,
+                inherit.aes = FALSE,
+                data = d, ...)
+    
+  } else {
+    
+    geom(aes(x = x, y = y, label = label),
+         color = color, size = size,
+         inherit.aes = FALSE,
+         data = d, ...)
+    
+  }
   
   
 }
 
 
-message("-- weplot loaded (version 1.29) --")
+message("-- weplot loaded (version 1.30) --")
 
 
 

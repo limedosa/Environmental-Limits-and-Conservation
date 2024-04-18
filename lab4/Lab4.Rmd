@@ -116,11 +116,11 @@ source("solar panel functions.R") #loads functions for calcualting anges
 
 #Input objs
 Efficiency<-.15 #panel effieiciency
-Panel.Area<-1.41#area of individual panels 
+panelArea<-1.41#area of individual panels 
 Num.Panels<-48#num panels total
 
 #intial cals
-Total.Area<-Panel.Area*Num.Panels #total panel area
+Total.Area<-panelArea*Num.Panels #total panel area
 Time<-length(Hour) #length of dataset 
 
 #output objs
@@ -151,7 +151,7 @@ for (t in 1:Time){
 
 #convert from watts to killowats 
 #result kilowatts 
-Elec.Observed.kW<-Elec.Observed.W2/1000 #watts to kw
+Elec.Observed.kW<-Elec.Observed.W/1000 #watts to kw
 Elec.Model2.kW<-Elec.Model2.W/1000 #watss to kw
 
 weplot(
@@ -177,12 +177,14 @@ print(Elec.Model2.kWh)
 Solar panel model that accounts for panel and sun angles AND works with data on any day of the year
 
 ```{r Solar_Model_3}
+# Load the RData file
 load("Lab 4 Data - All 2012.RData")
-weplot(x=Hour, y=Solar.Radiation.Wm2, type="point+line") #Radiant power
-# weplot(x=Hour, y=Elec.Observed.W, type="point+line") #actual power observed 
 
+# List the variables in the loaded dataset
+dataset_variables <- names(data())
 
-
+# Print the list of variables
+print(dataset_variables)
 
 ```
 

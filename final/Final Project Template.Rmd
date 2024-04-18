@@ -1,0 +1,66 @@
+---
+title: "ES 220 Final Project"
+author: "NAME"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r, include = FALSE}
+# This chunk installs weplot and helps with pdf formatting (and is excluded from knitting)
+source("setup/setup.R")
+
+```
+
+
+Matrix data example
+
+```{r, include = FALSE}
+
+# This chunk shows example code for investigating matrix data (and is excluded from knitting)
+load("Phyllanthus indofischeri.RData") #load data
+
+View(Info) #Info is a data frame object that describes all the matrices contained in the object A.mat (each row)
+
+A.mat[[2]] #the 2nd matrix in A.mat, which is from 2006-2007 in Biligiri Rangaswamy Temple Wildlife Sanctuary (with no experimental treatment)
+
+#Note that [[ ]] double brackets are used to index/extract objects within lists. Single brackets will extract it as a list instead of a matrix
+
+A.classes[[2]] #shows the classes associated with A.mat[[2]] (usually all classes will be the same across matrices, but might not always be!)
+
+#Define the get.lam function (always useful for working with matrices!)
+get.lam <- function(x){
+    return(as.numeric(eigen(x)$values[1]))
+}
+
+#Population growth rate for the 2nd matrix
+get.lam(A.mat[[2]])
+
+
+#Show population growth rates for all matrices
+for (i in 1:length(A.mat)){
+  
+  #show data from Info regarding the year, population, and treatment
+  message(Info$Years[i])
+  message(Info$Population[i])
+  message(Info$Treatment[i])
+
+  #show population growth rate
+  print(get.lam(A.mat[[i]]))
+  
+}
+
+
+```
+
+
+
+```{r}
+
+
+
+
+```
+
+

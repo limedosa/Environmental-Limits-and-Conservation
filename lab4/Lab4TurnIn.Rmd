@@ -1,0 +1,267 @@
+---
+title: "ES 220 Lab 4 - Assignment"
+author: "Linda Dominguez"
+date: "Feb 22, 2024"
+output:
+  pdf_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+
+```{r, include = FALSE}
+# This chunk installs weplot and helps with pdf formatting (and is excluded from knitting)
+source("setup/setup.R")
+
+```
+
+
+## Load solar radiation and observed electrical  power data
+
+```{r Load_Data}
+load("Lab 4 Data - All 2012.RData")
+weplot(x=Hour, y=Solar.Radiation.Wm2, type="point+line") #Radiant power
+
+```
+
+
+## What is your estimated useable roof area?
+I estimate 4709.34 m^2 of usable roof area. 
+```{r Estimated Roof Area}
+#Input objsr
+tilt<- 18 #the tilt of the panels is set to be 25 degrees 
+aspect<-175 #aspect is set to be 175 degrees
+efficiency <-.15 #as set in the lab
+```
+
+## Finding the more optimal solar panel area with large panels
+We have 3,339.957 rounded to 3,340 panels we can use. The total panel area is 4709.34 meters squared. I'm certain we can find panels with higher dimensios, but I'm taking the 1.41 
+squared meters dimension from class. 
+
+```{r Panels }
+totalAreaKSC <- 4709.34 #meters squared in whole ksc
+panelArea<-1.41#area of individual panels 
+numPanels<- totalAreaKSC/panelArea#num panels total
+
+print(numPanels) #3339.957
+#intial cals
+totalArea<-panelArea*numPanels #total panel area
+print(totalArea) #9,559,432
+
+Time<-length(Hour) #length of dataset =>8784
+print(Time)
+#output objs
+# Elec.Model.W<-numeric() #creates empty obj of length 0
+
+```
+
+These are all the variables in the dataset 
+```{r variableNames }
+ls()
+# > ls()
+#  [1] "add.weplot"          "aspect"              "Date"
+#  [4] "Day"                 "DOY"                 "DOY.Time"           
+#  [7] "Hour"                "Month"               "numPanels"
+# [10] "panelArea"           "Solar.Radiation.Wm2" "tilt"
+# [13] "Time"                "totalArea"           "totalAreaKSC"       
+# [16] "weplot"              "weplot.Pop"
+# length(DOY) #8784
+# length(Time) #1
+# length(Month) #WHY IS THIS 8784 long??????
+source("solar panel functions.R") #loads functions for calcualting anges
+
+days <- length(DOY)
+time<-length(Time)
+Incident.Solar.Radiation.Wm<- numeric()
+model<-numeric() #creates empty obj of length 0
+# DOY.Time
+```
+```{r model with presets above}
+tilt<- 18 
+aspect<-175
+basicModel<- numeric()
+for (day in days){
+  for (t in 1:Time){
+    sunElevation<- sun_elevation(day, Hour[t]) #day changes
+    sunAzimuth<-sun_azimuth(day, Hour[t]) #change 6 to be day for other funct
+    Incident.Solar.Radiation.Wm[t] <- get_incident_rad(
+      Solar.Radiation.Wm2[t], tilt, aspect, sunElevation, sunAzimuth
+      )
+    
+    #calculate electricity produced
+    basicModel[t]<-totalArea *Incident.Solar.Radiation.Wm[t] * efficiency 
+}
+}
+#convert from watts to killowats 
+#result kilowatts 
+# Elec.Observed.kW<-Elec.Observed.W/1000 #watts to kw
+# Elec.Model.kW<-basicModel/1000 #watss to kw
+
+modelKW<-basicModel/1000 #watss to kw
+# modelKW
+sum(modelKW) #1,514,959 kilowatts in total
+mean(modelKW) #172 kw produced on average
+
+```
+
+## Testing new tilt and aspects
+Based on the tested tilts and shifts, the idea model was 50 tilt , 160 aspect. 
+This model had 226 mean kw produced vs the other model which had 172 mean kw. 
+It had 470,514.9 more kilowats produced in total the whole year.
+
+```{r made a function to plug in random tilt and aspect}
+
+newModel<- numeric() 
+energy <- function(tilt, aspect) {
+  energyVals <- numeric(length = Time)  # Initialize a numeric vector to store energy values
+  
+  for (day in days) {
+    for (t in 1:Time) {
+      sunElevation <- sun_elevation(day, Hour[t]) #day changes
+      sunAzimuth <- sun_azimuth(day, Hour[t]) #change 6 to be day for other function
+      Incident.Solar.Radiation.Wm[t] <- get_incident_rad(
+        Solar.Radiation.Wm2[t], tilt, aspect, sunElevation, sunAzimuth
+      )
+        newModel[t] <- totalArea * Incident.Solar.Radiation.Wm[t] * efficiency 
+      
+      energyVals[t] <- newModel[t]  
+    }
+  }
+  
+  return(energyVals)  
+}
+
+testingNums <- energy(40, 160)
+testingKW <- testingNums / 1000  # Convert watts to kilowatts
+mean(testingKW)  # Calculate mean energy output in kilowatts
+sum(testingKW)-sum(modelKW)
+#######################################################
+#VALUES TESTED AND THEIR MEAN ENERGY OUTPUT:
+# (70,100) => 114
+# (60,100) => 117
+#(50, 100) => 120
+#(50, 10) => 9.3
+#(90, 120) => 135
+# (90, 140)=> 173
+# (20, 140) => 156
+# (50, 140)=> 191 
+# (40, 140)=> 184
+# (50, 160)=> 226
+```
+
+## 2a 
+```{r figure of panel lying directly on the roof}
+panelBasicPlot<-weplot(
+  x=Date, y=modelKW,
+  type='line',
+  xlab='Day', 
+  title="Yearly Model with Original Tilt & Aspect ",
+  ylab="Electrical power(kw)"
+)
+panelBasicPlot
+```
+```{r figure of panel positioned optimally}
+panelOptimalPlot<-weplot(
+  x=Date, y=testingKW,
+  type='line',
+  xlab='Date', 
+  title="Yearly Model with Optimal Parameters",
+  ylab="Electrical power(kw)"
+)
+panelOptimalPlot
+
+#Power difference between models:
+sum(testingKW)-sum(modelKW)
+```
+```{r figure of panel lying directly on the roof and optimal}
+panelsPlot<-weplot(
+  x=Date, y=list(modelKW,testingKW),
+  type='line',
+  xlab='Day', 
+  title="Yearly Model Power with Both Original & Optimal Tilt & Aspect",
+  ylab="Electrical power(kw)"
+)
+panelsPlot
+```
+
+
+## 2b 
+The total energy with the original tilt and aspect parameters was 1,514,959 kWh, while 
+the total energy with the tweaked parameters of 50 tilt , 160 aspect model was 1,985,474 kWh.
+
+There was a difference of 470,514.9 kWh between the two models. 
+```{r Total Energy Differences}
+
+sum(modelKW)  #1,514,959 kWh
+
+sum(testingKW) #1,985,474 kWh
+#difference:
+sum(testingKW)-sum(modelKW) #470,514.9 kWh difference 
+
+
+```
+
+
+## 2c 
+
+
+```{r Cummulative Energy Basic and Optimal Graphs}
+
+cummulativeEnergyBasic<- cumsum(modelKW)
+cummulativeEnergyBasicPlot<-weplot(
+  x=Date, y=cummulativeEnergyBasic,
+  type='line',
+  xlab='Date', 
+  title="Cummulative Yearly Energy Model with Basic Parameters",
+  ylab="Electrical power(kw)"
+)
+
+cummulativeEnergyBasicPlot
+
+cummulativeEnergyOptimal<-cumsum(testingKW)
+
+cummulativeEnergyOptimalPlot <- weplot(
+  x=Date, y=cummulativeEnergyOptimal,
+  type='line',
+  xlab='Date', 
+  title="Cummulative Yearly Energy Model with Optimal Parameters",
+  ylab="Electrical power(kw)"
+)
+cummulativeEnergyOptimalPlot
+
+```
+\newpage 
+
+```{r Cummulative Energy Optimal vs Basic}
+
+
+# cummulativeEnergyOptimal<-cumsum(testingKW)
+comparison <- weplot(
+  x = Date,
+  y = list(cummulativeEnergyOptimal, cummulativeEnergyBasic),
+  type = 'line',
+  xlab = 'Date',
+  title = "Comparison Cumulative Yearly Energy Model with Optimal Parameters vs Original Parameters",
+  ylab = "Electrical power (kw)"
+)
+comparison
+
+```
+
+## Consulting report 
+
+## Variability in solar power across the year (i.e. consistency/reliability).
+There's a reliable amount of solar power across the year. The panels plot shown below demonstrates the energy produced between January 2012- January 2013.
+It increases during Summer and Spring months, pressumably due to increasing sunlight. The model showing this is below: 
+```{r Solar Power Through The Year}
+panelsPlot
+```
+
+## The degree to which the KSC roof is oriented optimally (or not), and the amount 
+## of energy that could be gained if panels were oriented optimally.
+The graph below shows us the 
+
+
+## What is the potential for solar power to meet the needs of the college?
+(Note that Wellesley College typically consumes about 2,800 kW on average)
+

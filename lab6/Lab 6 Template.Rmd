@@ -1,0 +1,355 @@
+---
+title: "ES 220 Lab 6"
+author: "Linda Dominguez"
+date: "Feb 28 2024"
+output:
+  pdf_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+# This chunk installs weplot and helps with pdf formatting (and is excluded from knitting)
+source("setup/setup.R")
+source("setup/weplot.R")
+load("Lab 6 Data 2021.RData")
+
+
+```
+
+
+### Load and examine data from Tuolumne Meadows, CA during the 2021 Water Year
+
+```{r Load_Data}
+load("Lab 6 Data 2021.Rdata")
+# > ls()
+#  [1] "add.weplot"   "Date"         "DOY"          "Precip"       "S"
+#  [6] "SWE.Observed" "Temp"         "weplot"       "weplot.Pop"   "WY"
+
+#date x precipitation
+precipDateModel<-(weplot(x=Date, y=Precip, type='line'))
+# precipDateModel
+
+#SWE Model
+SWEDateModel<-(weplot(x=Date, y=SWE.Observed, type='line'))
+# SWEDateModel
+
+#Day x Snow Model
+SDateModel<-(weplot(x=Date, y=S, type='line'))
+# SDateModel
+
+#day x temp model 
+tempModel<-(weplot(x=Date, y=Temp, type='line'))
+# tempModel
+```
+
+
+### Model 1: Snowpack that only accumulates snow and does not melt
+
+```{r Model_1}
+load("Lab 6 Functions.RData")
+load("Lab 6 Data 2021.RData")
+load("Lab 6 Data 2021.RData")
+
+Time <- length(Date)
+Snowfall <- numeric(Time)
+rainFall <- numeric(Time)
+SWE <- numeric(Time + 1)  # Adding 1 for tomorrow's value
+SWE[1] <- 0  # Initial value for SWE
+
+for (i in 1:Time) {
+    if (Temp[i] <= 0) {
+        Snowfall[i] <- Precip[i]  # All precipitation is snow if temperature is below or at freezing
+        rainFall[i] <- 0
+    } else {
+        Snowfall[i] <- 0
+        rainFall[i] <- Precip[i]  # All precipitation is rain if temperature is above freezing
+    }
+    
+    # Calculate tomorrow's SWE
+    SWE[i + 1] <- SWE[i] + Snowfall[i]
+}
+
+SWE <- SWE[-1]
+
+weplot(x =Date, y=SWE, type='line')
+
+```
+
+
+### Model 2: Incorporating *potential* snowMelt and sublimation
+```{r retry}
+# Define input data
+load("Lab 6 Data 2021.RData")
+
+# Define objects
+Time <- length(Date)
+Snowfall <- numeric(Time)
+rainFall <- numeric(Time)
+SWE <- numeric(Time + 1)  # Adding 1 for tomorrow's value
+SWE[1] <- 0  # Initial value for SWE
+
+# Empty objects for sublimation and snowMelt
+Sublimation <- numeric(Time)
+snowMelt <- numeric(Time)
+
+# Constants
+Albedo <- 0.85
+
+# Loop
+for (i in 1:Time) {
+  tempToday<-Temp[t] 
+    # Determine snowfall and rainFall
+    if (Temp[i] <= 0) {
+        Snowfall[i] <- Precip[i]  # All precipitation is snow if temperature is below or at freezing
+        rainFall[i] <- 0
+    } else {
+        Snowfall[i] <- 0
+        rainFall[i] <- Precip[i]  # All precipitation is rain if temperature is above freezing
+    }
+    
+    # Calculate sublimation
+    Sublimation[i] <- 0.043 * Temp[i] + 0.03 * (1 - Albedo) * S[i]
+    
+    # Calculate snowMelt
+    snowMelt[i] <- 1.2 * Temp[i] + 0.226 * (1 - Albedo) * S[i]
+    
+    # Calculate tomorrow's SWE
+    SWE[i + 1] <- SWE[i] + Snowfall[i] - snowMelt[i] - Sublimation[i]
+    
+    # Ensure SWE doesn't go negative
+    if (SWE[i + 1] < 0) {
+        SWE[i + 1] <- 0
+    }
+}
+SWE <- SWE[1:Time]
+weplot(x =Date, y=SWE, type='line')
+
+```
+
+```{r Model_2}
+# SWE2<-0
+# snowfall2<- numeric()
+# rainFall2<- numeric()
+
+# albedo<- .85
+
+# for(t in 1:Time){
+#   tempToday<- tempToday
+#   # print(tempToday)
+#   solarRaditionToday<- S[t]
+#   # print(solarRaditionToday)
+#   sublimation<- (.043*tempToday)+.03*(1-albedo) * solarRaditionToday
+#   # print(sublimation)
+#   snowMelt<-(1.2*tempToday)+.226*(1-albedo)*solarRaditionToday
+#   # print(snowMelt)
+#   if(tempToday<=0){
+#     snowfall2[t]<- Precip[t]
+#     # print(snowfall2[t])
+#     rainFall2[t]<- 0
+#   }
+#   else{
+#     snowfall2[t]<- 0
+#     rainFall2[t]<- Precip[t]
+#     # print(rainFall2[t])
+#   }
+#   SWE2[t+1]<- SWE2[t] + snowfall[t] - snowMelt - sublimation
+# }
+# SWE2 <- SWE2[1:Time]
+# # print((SWE2))
+
+# weplot(x=Date, y=SWE2)
+```
+
+
+### Model 3: A "balanced" model with constraints on snowMelt and sublimation
+
+```{r Model_3}
+# Define input data
+load("Lab 6 Data 2021.RData")
+
+Time <- length(Date)
+Snowfall <- numeric(Time)
+rainFall <- numeric(Time)
+SWE <- numeric(Time + 1)  
+SWE[1] <- 0  
+
+Sublimation <- numeric(Time)
+snowMelt <- numeric(Time)
+
+Albedo <- 0.85
+
+for (t in 1:Time) {
+  tempToday<-Temp[t] 
+    if (tempToday<= 0) {
+        Snowfall[t] <- Precip[t] 
+        rainFall[t] <- 0
+    } else {
+        Snowfall[t] <- 0
+        rainFall[t] <- Precip[t] 
+    }
+    
+    if (tempToday> 0) {
+        Sublimation[t] <- 0 
+    } else {
+        Sublimation[t] <- 0.043 * tempToday+ 0.03 * (1 - Albedo) * SWE[t]
+        if (Sublimation[t] < 0) {
+            Sublimation[t] <- 0 
+        }
+        if (Sublimation[t] > SWE[t]) {
+            Sublimation[t] <- SWE[t] #set this ton be the max 
+        }
+    }
+    
+    if (tempToday<= 0) {
+        snowMelt[t] <- 0  #snow doesnt melt if it's this cold 
+    } else {
+        snowMelt[t] <- 1.2 * tempToday+ 0.226 * (1 - Albedo) * SWE[t]
+        if (snowMelt[t] < 0) {
+            snowMelt[t] <- 0  #no neg. nums
+        }
+        if (snowMelt[t] > SWE[t]) {
+            snowMelt[t] <- SWE[t]  
+        }
+    }
+    
+    SWE[t + 1] <- SWE[t] + Snowfall[t] - snowMelt[t] - Sublimation[t]
+    if (SWE[t + 1] < 0) {
+        SWE[t + 1] <- 0  # Ensure SWE doesn't go negative
+    }
+  SWE <- SWE[1:Time]
+}
+
+
+weplot(x = Date, y =SWE, type = "line")
+# weplot(x = Date, y = SWE.Observed, type = "line")
+correlation <- cor(SWE.Observed, SWE)
+print(correlation)
+```
+
+
+### Turned into function model
+
+```{r Validation}
+# Load the data
+load("Lab 6 Data 2021.RData")
+snowModel <- function(Precip, Temp, S, Albedo, startSWE) {
+    Time <- length(Temp)
+    Snowfall <- numeric(Time)
+    rainFall <- numeric(Time)
+    SWE <- numeric(Time + 1)
+    SWE[1] <- startSWE
+    Sublimation <- numeric(Time)
+    snowMelt <- numeric(Time)
+
+    for (t in 1:Time) {
+      tempToday <- tempToday
+        if (tempToday<= 0) {
+            Snowfall[t] <- Precip[t]
+            rainFall[t] <- 0
+        } else {
+            Snowfall[t] <- 0
+            rainFall[t] <- Precip[t]
+        }
+
+        if (tempToday> 0) {
+            Sublimation[t] <- 0
+        } else {
+            Sublimation[t] <- 0.043 * tempToday+ 0.03 * (1 - Albedo) * S[t]
+            if (Sublimation[t] < 0) {
+                Sublimation[t] <- 0
+            }
+            if (Sublimation[t] > S[t]) {
+                Sublimation[t] <- S[t]
+            }
+        }
+
+        if (tempToday<= 0) {
+            snowMelt[t] <- 0
+        } else {
+            snowMelt[t] <- 1.2 * tempToday+ 0.226 * (1 - Albedo) * S[t]
+            if (snowMelt[t] < 0) {
+                snowMelt[t] <- 0
+            }
+            if (snowMelt[t] > S[t]) {
+                snowMelt[t] <- S[t]
+            }
+        }
+
+        SWE[t + 1] <- SWE[t] + Snowfall[t] - snowMelt[t] - Sublimation[t]
+        if (SWE[t + 1] < 0) {
+            SWE[t + 1] <- 0
+        }
+    }
+    
+    SWE <- SWE[1:Time]
+    
+  return(list(SWE = SWE, snowMelt = snowMelt, rainFall = rainFall))
+}
+
+
+
+modelTesting<- snowModel(Precip = Precip, Temp = Temp, S = S, Albedo = 0.85, startSWE = 0)
+SWE<- modelTesting$SWE
+weplot(x = Date, y = SWE, type = "line")
+
+correlation <- cor(SWE.Observed, SWE)
+print(correlation)
+
+
+```
+
+
+```{r final}
+load("Lab 6 Data 2021.RData")
+snowModel <- function(Precip, Temp, S, Albedo, startSWE) {
+    Time <- length(Temp)
+    Snowfall <- numeric(Time)
+    rainFall <- numeric(Time)
+    SWE <- numeric(Time + 1)
+    SWE[1] <- startSWE
+    Sublimation <- numeric(Time)
+    snowMelt <- numeric(Time)
+
+    for (t in 1:Time) {
+        tempToday <- Temp[t]
+
+        if (tempToday <= 0) {
+            Snowfall[t] <- Precip[t]
+            rainFall[t] <- 0
+            Sublimation[t] <- 0
+            snowMelt[t] <- 0
+        } else {
+            Snowfall[t] <- 0
+            rainFall[t] <- Precip[t]
+
+            Sublimation[t] <- 0.043 * tempToday + 0.03 * (1 - Albedo) * S[t]
+            Sublimation[t] <- ifelse(Sublimation[t] < 0, 0, Sublimation[t])
+            Sublimation[t] <- ifelse(Sublimation[t] > S[t], S[t], Sublimation[t])
+
+            snowMelt[t] <- 1.2 * tempToday + 0.226 * (1 - Albedo) * S[t]
+            snowMelt[t] <- ifelse(snowMelt[t] < 0, 0, snowMelt[t])
+            snowMelt[t] <- ifelse(snowMelt[t] > S[t], S[t], snowMelt[t])
+        }
+
+        SWE[t + 1] <- SWE[t] + Snowfall[t] - snowMelt[t] - Sublimation[t]
+        SWE[t + 1] <- ifelse(SWE[t + 1] < 0, 0, SWE[t + 1])
+    }
+    
+    SWE <- SWE[1:Time]
+    
+    return(list(SWE = SWE, snowMelt = snowMelt, rainFall = rainFall))
+}
+
+modelTesting<- snowModel(Precip = Precip, Temp = Temp, S = S, Albedo = 0.85, startSWE = 0)
+SWE<- modelTesting$SWE
+weplot(x = Date, y = SWE, type = "line")
+
+correlationSWEandObserved <- cor(SWE.Observed, SWE)
+# print(correlationSWEandObserved)
+# rainFall <- modelTesting$rainFall
+snowMelt <- modelTesting$snowMelt
+observedSWE <- SWE.Observed
+
+weplot(x = Date, y = list(SWE, observedSWE), type = "line")
+```

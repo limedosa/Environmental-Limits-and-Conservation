@@ -1,0 +1,177 @@
+---
+  title: "ES 220 - Midterm Synthesis"
+author: "Linda Dominguez"
+date: "17 March, 2022"
+output: pdf_document
+editor_options:
+  chunk_output_type: console
+---
+  
+```{r, include = FALSE}
+# This chunk installs weplot and helps with pdf formatting (and is excluded from knitting)
+source("setup/setup.R")
+source("setup/weplot.R")
+load('SouthavenMSData.RData')
+ls()
+```
+
+
+## The code chunks below are a suggestion of how to proceed, but feel free to structure your code as you wish.
+
+## 5a
+```{r Plotting figures}
+
+#fig 1 solar radiation (W/m2) through time
+solarRadiationFig<- weplot(x = Hour, y = Solar.Radiation.Wm2, type = "line",
+       xlab = "Hour", ylab = "Solar Radiation (W/m^2)", color=('#f6ab09'),
+       title = "Solar Radiation Through Time")
+solarRadiationFig
+
+#fig 2: Wind speed(m/s) through time
+windSpeedFig <- weplot(x = Hour, y = Velocity.Wind, type = "line",
+       xlab = "Hour of the day", ylab = "Wind Speed (m/s)", color=('#2356bd'),
+       title = "Wind Speed Through Time")
+windSpeedFig
+
+
+#fig 3: Electricity demand (MW) through time
+electricityDemandFig<-weplot(x = Hour, y = Demand.MW, type = "line",
+       xlab = "Hour of the day", ylab = "Electricity Demand (MW)", color=('#1c8a0b'),
+       title = "Electricity Demand Through Time")
+electricityDemandFig
+
+print(Population)
+```
+
+
+### Solar model
+
+```{r Solar_Model}
+
+######  Change these for better model
+efficiencySolar<-.15 #panel effieiciency
+panelArea<-1.41#area of individual panels 
+Num.Panels<-48 #num panels total
+totalArea<-panelArea*Num.Panels #total panel area
+Tilt<- 18 
+Aspect<- 175
+###########
+
+solarPanelModel <- function(Solar.Radiation.Wm2, Hour) {
+  Time <- length(Solar.Radiation.Wm2)
+  
+  Incident.Solar.Radiation.Wm <- numeric()
+  solarModel <- numeric()
+
+    for (t in 1:Time) {
+    sunElevation <- sun_elevation(DOY[t], Hour[t])
+    sunAzimuth <- sun_azimuth(DOY[t], Hour[t])
+    
+    # Incident.Solar.Radiation.Wm[t] <- get_incident_rad(
+    #   Solar.Radiation.Wm2[t], 18, 175, sunElevation, sunAzimuth)
+    Incident.Solar.Radiation.Wm[t] <- get_incident_rad(
+    Solar.Radiation.Wm2[t], Tilt, Aspect, sunElevation, sunAzimuth
+    )
+
+    solarModel[t] <- totalArea * Incident.Solar.Radiation.Wm[t] * efficiencySolar
+  }
+  
+  modelMW <- solarModel / 1000000 #convert from watts to mega watts 
+  
+  return(modelMW) #get the megawatts model 
+}
+
+solarPowerMW<- solarPanelModel(Solar.Radiation.Wm2, Hour)
+solarPowerMW
+
+```
+## side note on this model: I'm not sure how to correctly change the tilt and aspect in a more informative way 
+
+### Wind model
+
+```{r Wind_Model}
+efficiencyWind <- 0.20 #set from lab
+airDensity <- 1.2 #kg/m^2
+bladeArea <- 17907.86  # m^2
+
+windPowerMW <- ((1/2) * airDensity * bladeArea * Velocity.Wind^3)/ 1000000 
+
+#find mean demand 
+meanDemand <- mean(Demand.MW)
+
+#figure out what we have to scale our solar and wind power models to meet mean demand
+solarScaling <- meanDemand / mean(solarPowerMW)
+windScaling <- meanDemand / mean(windPowerMW)
+
+
+
+
+# Output objects
+# 1. Electric power produced by solar panels (megawatts)
+finalSolarPowerMWModel <- solarPowerMW * solarScaling
+finalSolarPowerMWModel
+print(finalSolarPowerMWModel)
+# 2. Electric power produced by wind turbines (megawatts)
+finalWindPowerMWModel <- windPowerMW * windScaling
+finalWindPowerMWModel
+print(finalWindPowerMWModel)
+# 3. Total renewable electric power (megawatts)
+#add the two together to get total power 
+totalPowerModel <- finalSolarPowerMWModel + finalWindPowerMWModel
+totalPowerModel
+print(totalPowerModel)
+
+
+
+```
+
+
+# Run models and analysis
+
+```{r}
+
+# 1. cumulative electricity from solar
+cumfinalSolarPowerMWModel<- cumsum(finalSolarPowerMWModel)
+# cumfinalSolarPowerMWModel
+# print(cumfinalSolarPowerMWModel)
+cumSolarPlot<- weplot(x = Hour, y = cumfinalSolarPowerMWModel, type = "line",
+       xlab = "Hour", ylab = "Cummulative Wind Power", color=('#500369'),
+       title = "Cummulative Solar Power Through Time")
+cumSolarPlot
+
+# 2.  cumulative electricity from wind
+cumfinalfinalWindPowerMWModel<- cumsum(finalWindPowerMWModel)
+# cumfinalfinalWindPowerMWModel
+# print(cumfinalfinalWindPowerMWModel)
+cumWindPlot<- weplot(x = Hour, y = cumfinalfinalWindPowerMWModel, type = "line",
+       xlab = "Hour", ylab = "Cummulative Wind Power", color=('#5c4004'),
+       title = "Cummulative Wind Power Through Time")
+cumWindPlot
+
+# 3. cumulative renewable electricity (wind + solar), and
+cumfinaltotalPowerModel<- cumsum(totalPowerModel)
+# cumfinaltotalPowerModel
+# print(cumfinaltotalPowerModel)
+cumTotalPlot<- weplot(x = Hour, y = cumfinaltotalPowerModel, type = "line",
+       xlab = "Hour", ylab = "Cummulative Combined Power", color=('#8b4207'),
+       title = "Cummulative Total Power Through Time")
+cumTotalPlot
+
+# 4. cumulative electricity demand
+cumElectDemand<- cumsum(Demand.MW)
+# cumElectDemand
+# print(cumElectDemand)
+cumDemandPlot<- weplot(x = Hour, y = cumElectDemand, type = "line",
+       xlab = "Hour", ylab = "Cummulative Demand", color=('blue'),
+       title = "Cummulative Demand Through Time")
+cumDemandPlot
+
+#both plot 
+
+bothPlot<- weplot(x = Hour, y = list(cumElectDemand, cumfinalSolarPowerMWModel, cumfinalfinalWindPowerMWModel), type = "line",
+       xlab = "Hour", ylab = "Electricity", 
+       title = "Cummulative Demand + Cummulative Wind Power + Cummulative Solar Power Through Time")
+bothPlot
+
+```
+

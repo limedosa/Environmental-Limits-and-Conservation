@@ -1,0 +1,301 @@
+---
+title: "ES 220 Lab 6 Assignment"
+date: "March 6 2024"
+output:
+  pdf_document:
+    pandoc: "C:/Users/ldomi/AppData/Local/your_pandoc_path/pandoc" # Add your Pandoc path here
+editor_options:
+  chunk_output_type: console
+---
+
+
+
+### *Final model* made:
+
+```{r, include = FALSE}
+# This chunk installs weplot and helps with pdf formatting (and is excluded from knitting)
+source("setup/setup.R")
+source("setup/weplot.R")
+load("Lab 6 Data 2021.RData")
+```
+
+
+```{r Validation}
+# Load the data
+load("Lab 6 Data 2021.RData")
+snowModel <- function(Precip, Temp, S, Albedo, startSWE) {
+    Time <- length(Temp)
+    Snowfall <- numeric(Time)
+    rainFall <- numeric(Time)
+    SWE <- numeric(Time + 1)
+    SWE[1] <- startSWE
+    Sublimation <- numeric(Time)
+    snowMelt <- numeric(Time)
+
+    for (t in 1:Time) {
+      tempToday <- Temp[t]
+        if (tempToday<= 0) {
+            Snowfall[t] <- Precip[t]
+            rainFall[t] <- 0
+        } else {
+            Snowfall[t] <- 0
+            rainFall[t] <- Precip[t]
+        }
+
+        if (tempToday> 0) {
+            Sublimation[t] <- 0
+        } else {
+            Sublimation[t] <- 0.043 * tempToday+ 0.03 * (1 - Albedo) * S[t]
+            if (Sublimation[t] < 0) {
+                Sublimation[t] <- 0
+            }
+            if (Sublimation[t] > S[t]) {
+                Sublimation[t] <- S[t]
+            }
+        }
+
+        if (tempToday<= 0) {
+            snowMelt[t] <- 0
+        } else {
+            snowMelt[t] <- 1.2 * tempToday+ 0.226 * (1 - Albedo) * S[t]
+            if (snowMelt[t] < 0) {
+                snowMelt[t] <- 0
+            }
+            if (snowMelt[t] > S[t]) {
+                snowMelt[t] <- S[t]
+            }
+        }
+
+        SWE[t + 1] <- SWE[t] + Snowfall[t] - snowMelt[t] - Sublimation[t]
+        if (SWE[t + 1] < 0) {
+            SWE[t + 1] <- 0
+        }
+    }
+    
+    SWE <- SWE[1:Time]
+    
+  return(list(SWE = SWE, snowMelt = snowMelt, rainFall = rainFall))
+}
+
+
+observedSWE <- SWE.Observed
+model1Testing<- snowModel(Precip = Precip, Temp = Temp, S = S, Albedo = 0.85, startSWE = 0)
+SWE1<- model1Testing$SWE
+rainFall1 <- model1Testing$rainFall
+snowMelt1 <- model1Testing$
+snowMelt
+
+sweModel1<-weplot(x = Date, y = SWE1, type = "line")
+sweModel1
+
+correlation1 <- cor(observedSWE, SWE1)
+print(correlation1)
+
+
+
+
+
+```
+
+
+```{r variables}
+ls()
+```
+
+```{r Part1}
+# Figure 1: 
+#Overlay of both modeled & observed snowpack SWE through time for 
+# 2021 Water Year
+fig1<-weplot(x = Date, y = list(SWE1, observedSWE), type = "line", 
+       title = "Snowpack SWE Through Time (2021 Water Year)", 
+       xlab = "Date", ylab = "Snow Water Equivalent (SWE)")
+fig1
+#correlation between my model and the observed data:
+correlation1 <- cor(observedSWE, SWE1)
+print(correlation1)
+
+#fig 2: 
+# Scatterplot of observed vs. modeled snowpack SWE values
+fig2<- weplot(x = observedSWE, y = SWE1,
+        title = "Observed vs. Modeled Snowpack SWE (2021 Water Year)",
+        xlab = "Observed SWE", ylab = "Modeled SWE")
+fig2
+
+
+
+```
+
+
+```{r Part 2: Temp increase by 4 degrees model}
+# Load the data
+#NOTE: when I switched it to be temp -1 degree,it had .993064 correlation
+# This transformation of adding 4 degrees celcus results ina  worse model which has a 0.4631248 correlation between Observed SWE and the model's calculated SWE.
+load("Lab 6 Data 2021.RData")
+snowModel4Degrees <- function(Precip, Temp, S, Albedo, startSWE) {
+    Time <- length(Temp)
+    Snowfall <- numeric(Time)
+    rainFall <- numeric(Time)
+    SWE <- numeric(Time + 1)
+    SWE[1] <- startSWE
+    Sublimation <- numeric(Time)
+    snowMelt <- numeric(Time)
+
+    for (t in 1:Time) {
+    tempToday <- (Temp[t]+4)
+        if (tempToday<= 0) {
+            Snowfall[t] <- Precip[t]
+            rainFall[t] <- 0
+        } else {
+            Snowfall[t] <- 0
+            rainFall[t] <- Precip[t]
+        }
+
+        if (tempToday> 0) {
+            Sublimation[t] <- 0
+        } else {
+            Sublimation[t] <- 0.043 * tempToday+ 0.03 * (1 - Albedo) * S[t]
+            if (Sublimation[t] < 0) {
+                Sublimation[t] <- 0
+            }
+            if (Sublimation[t] > S[t]) {
+                Sublimation[t] <- S[t]
+            }
+        }
+
+        if (tempToday<= 0) {
+            snowMelt[t] <- 0
+        } else {
+            snowMelt[t] <- 1.2 * tempToday+ 0.226 * (1 - Albedo) * S[t]
+            if (snowMelt[t] < 0) {
+                snowMelt[t] <- 0
+            }
+            if (snowMelt[t] > S[t]) {
+                snowMelt[t] <- S[t]
+            }
+        }
+
+        SWE[t + 1] <- SWE[t] + Snowfall[t] - snowMelt[t] - Sublimation[t]
+        if (SWE[t + 1] < 0) {
+            SWE[t + 1] <- 0
+        }
+    }
+    
+    SWE <- SWE[1:Time]
+    
+  return(list(SWE = SWE, snowMelt = snowMelt, rainFall = rainFall))
+}
+model4Test<- snowModel4Degrees(Precip = Precip, Temp = Temp, S = S, Albedo = 0.85, startSWE = 0)
+SWE2<- model4Test$SWE
+rainFall2 <- model4Test$rainFall
+snowMelt2 <- model4Test$snowMelt
+
+correlation2 <- cor(observedSWE, SWE2)
+print(correlation2)
+
+observedSWE <- SWE.Observed
+
+sweModel2<- weplot(x = Date, y = SWE2, type = "line")
+sweModel2
+comparisonPlot2 <- weplot(x = Date, y = list(SWE2, observedSWE), type = "line")
+comparisonPlot2 #VERY DIFFERENT
+```
+
+# Figure 3: A plot (or plots) showing the cumulative sum of snowmelt for (1) the modeled 2021
+# water year, and (2) a scenario where the 2021 temperature values are increased by 4  ̊C.
+
+```{r figures pt 2}
+cummulativeWater1 <- cumsum(snowMelt1)
+sum(cummulativeWater1)
+cummulativeWater2 <- cumsum(snowMelt2)
+sum(cummulativeWater2)
+
+fig3 <- weplot(x = Date, y = list(cummulativeWater1, cummulativeWater2), type = "line")
+fig3
+```
+
+
+# Figure 4: A plot (or plots) showing the cumulative sum of liquid water for (1) the modeled 2021
+# water year, and (2) a scenario where the 2021 temperature values are increased by 4  ̊C.
+```{r figures pt 2}
+cummulativeWater1 <- cumsum((snowMelt1 + rainFall1))
+sum(cummulativeSnow1)
+cummulativeWater2 <- cumsum((rainFall2 + snowMelt2))
+sum(cummulativeRain2)
+
+
+fig4 <- weplot(x = Date, y = list(cummulativeWater1, cummulativeWater2), type = "line")
+fig4
+
+fig5 <- weplot(x = Date, y = list(cummulativeWater1, cummulativeSnow1), type = "line")
+fig5
+
+# waterVSsnow <- weplot(x = Date, y = list(cummulativeWater1, cummulativeSnow1), type = "line")
+# waterVSsnow
+
+
+```
+
+### NEW DATA Part
+```{r change final snowmelt}
+load("Lab 6 Data 2018-2021.RData")
+
+ls()
+# > ls()
+# "Date" "DOY" "Precip" "S" "Temp" "WY"
+temps<- numeric(length(Date))
+for (day in 1: Date){
+    temps[day]<-Temp[day]
+}
+temps
+```
+
+## Yearly snow melt (2018-2021)
+```{r final model}
+# Load the data file containing SWE and Date for multiple years
+load("Lab 6 Data 2018-2021.RData")
+load("Lab 6 Functions.RData")
+# ls()#just to check the vars in dataset
+
+meltDates <- function(SWE, Date, tempIncrease) {
+    #adjusting temp to be whatever increase is=> either 0 or 4 degrree increase
+    Temp <- (Temp + tempIncrease)
+    #call snow model(the first one without any temp adjustment bc/ we can edit that when we set temp)
+    modelTesting <- snowModel(Precip = Precip, Temp = Temp, S = S, Albedo = 0.85, startSWE = 0)
+    SWE <- modelTesting$SWE
+
+    #get melt dates from the melt.dates funct in lab6 functs
+    meltDates <- melt.dates(SWE, Date)
+    
+    #get final melt date for each year
+    meltDates <- sapply(meltDates, function(meltDate) {
+        if (length(meltDate) > 0) {
+            max_date <- max(meltDate)
+            finalMeltDate <- format(max_date) #changing formatting 
+            print(finalMeltDate)
+        } 
+    })
+}
+
+melt0 <- meltDates(SWE, Date, tempIncrease = 0)
+melt0
+
+melt2 <- meltDates(SWE, Date, tempIncrease = 2)
+melt2
+
+melt4 <- meltDates(SWE, Date, tempIncrease = 4)
+melt4
+
+```
+# final melt dates:
+melt dates  
+
+
+0 => 2/08 - 6/22
+<!-- "2018-02-08" "2018-04-26" "2019-06-22" "2020-05-01" "2021-04-20" -->
+
+2 => 1/17 - 4/17
+<!-- "2018-04-06" "2019-05-06" "2020-02-29" "2020-04-17" "2021-01-17" "2021-04-02" -->
+
+4 => 2/26 - 4/12
+<!-- "2018-04-01" "2019-02-01" "2019-04-04" "2020-01-04" "2020-04-12" "2021-02-26" -->
+

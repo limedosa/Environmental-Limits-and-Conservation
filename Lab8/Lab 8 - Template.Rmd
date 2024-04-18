@@ -1,0 +1,338 @@
+---
+title: "Lab 8"
+author: "Linda Dominguez"
+output:
+  pdf_document:
+    latex_engine: xelatex
+
+---
+
+
+
+```{r, include = FALSE}
+# This chunk installs weplot and helps with pdf formatting (and is excluded from knitting)
+source("setup/setup.R")
+source("setup/weplot.R")
+
+```
+
+
+## Part 1
+Stock assessment for Bocaccio 
+
+
+```{r Stock_Assessment}
+
+# # (1a) # #
+# Enable the "readxl" package for importing Excel files
+library(readxl)
+
+
+
+# Import data from "Lab 8 Bocaccio Data.xlsx"
+fishDF<- read_excel("Lab 8 Bocaccio Data.xlsx")
+#fishDF #shows first 10 rows
+
+
+
+
+# # (1b) # #
+# Make figures showing changes in variables through time
+
+#View(fishDF) #same as print(df)
+biomass<- fishDF$Biomass #same as df['biomass']
+N<- fishDF$N
+year<- fishDF$Year
+observedLambda <- fishDF$Obs.Lambda
+reproductiveBiomass<- fishDF$Repro.Biomass
+catch<- fishDF$Catch
+
+#these two plots are the same!
+yearBiomassPlot<- weplot(x=year, y=biomass, type='line')
+yearBiomassPlot
+yearBiomassPlotBetter<- weplot(data = fishDF, x=Year, y=Biomass, type='line', title='Fish Biomass Through Time')
+yearBiomassPlotBetter
+
+# # (1c) # #
+# Calculate the exploitation rate (F) and store it within the object Fish
+#fish exploitation found by: catch/biomass
+fishDF$F <- (catch/biomass)
+# fishDF$F
+fishingExploitation<- fishDF$F
+fishingExploitation
+
+
+# # (1d) # #
+# Make a figure that shows how the exploitation rate has changed through time
+exploitationThroughTime<- weplot(x=year, y=fishingExploitation, type='line', color = c( "#bf9993"), title= 'Fishing Exploitation Throughout Time')
+exploitationThroughTime
+# # (1e) # #
+# Calculate ratios of F/Fmsy and rB/rBmsy
+msyLow<- 1857
+msyHigh<- 2021
+fmsyLow<- .082
+fmsyHigh<- .129
+rBmsyLow<- 3302
+rBmsyHigh<- 2159
+
+fishDF$fRatio<-  (fishingExploitation/fmsyHigh)
+fishDF$rbRatio<- (reproductiveBiomass/rBmsyHigh)
+
+fishDF$fRatio
+fishDF$rbRatio
+
+# # (1f) # #
+# Create a stock assessment figure 
+fishStockPlot <- weplot(data=fishDF, x=rbRatio, y=fRatio, group=Year, type='point+path', xlab='rb/rBmsy', ylab='F/Fmsy', color=c('red', '#9358cf'), title= "Fish Stock Through Time") +
+geom_hline(yintercept=1)+
+geom_vline(xintercept=1)
+fishStockPlot
+
+```
+
+
+## Part 2
+What might have happened if fishing restrictions had not been adopted?
+*Deterministic Model*
+
+The geometric mean is required to calculate average growth rates
+
+```{r Geometric_Mean}
+
+# # Exploring the geometric mean # # 
+
+# Creates a function to calculate a geometric mean
+geomean <- function(x){
+  
+  return( prod(x)^(1/length(x)) ) #Product of values raised to the inverse of their length (i.e. to the "length root")
+  
+}
+
+# Equally opposed growth rates: a halving (0.5) and a doubling (2)
+Test.Lambdas <- c(0.5, 2) 
+
+# Compare geometric vs. arithmetic means
+geomean(Test.Lambdas)
+mean(Test.Lambdas)
+
+
+# # (2a) # #
+# Calculate geometric mean for boccacio before and after fishing restrictions
+
+# Extract observed lambda values from different time periods
+fishDF$geoLambda <- geomean(observedLambda[2:length(observedLambda)])
+fishDF$geoLambda
+
+geoLambda.1970.1999 <- geomean(observedLambda[2:30])
+geoLambda.1970.1999
+arithmeticLambda.1970.1999 <- mean(observedLambda[2:30])
+arithmeticLambda.1970.1999
+
+geoLambda.2000.2016 <- geomean(observedLambda[31:length(observedLambda)])
+geoLambda.2000.2016
+arithmeticLambda.2000.2016 <- mean(observedLambda[31:length(observedLambda)])
+arithmeticLambda.2000.2016
+
+
+# Calculate geometric and arithmetic means for both time periods
+
+
+
+```
+
+
+Create a deterministic population model from 1999 to 2016 that assumes the average lambda value from 1970 to 1999 (i.e. with fishing).
+
+```{r Deterministic_Model}
+
+# # (2b) # #
+# Create a deterministic population model
+startYear <- 1999
+endYear <- 2016
+time<- endYear - startYear
+time
+length(time)
+initialPop<- N[30] #actual pop in 1999
+# initialPop
+#use lambda from 1970-1999
+populationModel <- numeric()
+# arithmeticLambda.1970.1999
+
+#set pop at 1 be intitial
+
+
+for (t in 1:time){
+  populationModel[1]<-initialPop
+  populationModel[t+1] <- populationModel[t] * (arithmeticLambda.1970.1999)
+print(populationModel[t+1] )
+}
+
+populationModel
+length(populationModel)
+
+noRestrictionsPlotDeterministic<- weplot(x=startYear:endYear, y= populationModel, type='line', xlab='Year', ylab='Fish(in millions)', title= 'Fish(in millions) Through Time Deterministic Model'
+)
+noRestrictionsPlotDeterministic
+# # (2c) # #
+# What is the final modeled population size compared to the actual population size in 2016?
+# The final modeled population size is 23.202 and the actual population is 23.202. They're the same.
+finalModelPop <- tail(N, 1)
+finalModelPop
+
+actualPop <- tail(fishDF$N, 1)
+actualPop
+```
+
+
+## Part 3
+What might have happened if fishing restrictions had not been adopted?
+*Stochastic Model*
+
+
+```{r Stochastic_Model}
+
+# # Start by copying in your code from the Deterministic_Model chunk
+
+# # Then refer to the handout and be sure to incorporate:
+#   (3a) Randomly sample lambda values each year (instead of defining a fixed value)
+#   (3b) Add an "outer" loop for stochastic iterations (runs)
+#   (3c) Make N a 2-dimensinoal array (matrix) with rows = years and cols = iterations
+
+startYear <- 1999
+endYear <- 2016
+time<- endYear - startYear
+
+iterations <- 500
+stochasticModel <- array(0, c(time + 1, iterations))
+
+for (it in 1:iterations) {
+  tempPopModel <- numeric()
+  tempPopModel[1] <- initialPop
+  # stochasticModel[1, it] <- tempPopModel[1]
+  for (t in 1:time) {
+    # lambdaChosen <- sample(geoLambda.2000.2016, 1)
+    lambdaChosen <- sample(observedLambda, 1)
+    while (is.na(lambdaChosen)) { #dont want NA lambdas
+      lambdaChosen <- sample(observedLambda, 1)
+    }
+    tempPopModel[t + 1] <- tempPopModel[t] * lambdaChosen
+    stochasticModel[t + 1, it] <- tempPopModel[t + 1]
+  }
+}
+
+stochasticModel[,1]
+length(stochasticModel[,1])
+stochasticModelPlot<- weplot(x=startYear:endYear, y= stochasticModel[,16], type='line', xlab='Year', ylab='Fish(in millions) Through Time', title= 'Fish(in millions) Through Time Stochastic Model')
+stochasticModelPlot
+# stochasticModel[,11]
+# length(stochasticModel[,11])
+
+
+# # (3d) # #
+# How many iterations ended up below the actual population size in 2016?
+# 470-ish iterations were below the actual 2016 population.
+# num iterations below actual pop size(2016)
+below2016 <- sum(stochasticModel[time + 1, ] < fishDF$N[length(fishDF$N)])
+print(below2016)
+
+```
+
+\newpage
+
+# Report 
+
+```{r }
+
+
+```
+
+1. Summarize the past and present of the Bocaccio stock
+We have data present from 1970-2016 for the Bocaccio fish. 
+* The biomass faces a steady decline from 1970-1999, where it's at its lowest point. From 1999, at its lowest biomass of 10,150 , the biomass increases until it faces a sudden drop from the year 2005-2012. In 2012, the population began increasing again ending with a biomass of 22,816.
+* The fishing exploitation starts at around .4 and rapidly increases. From 1979-1999, the rate stays in a range of about (.10, .16). The fishing exploitation rapidly decreases from 1991-2016. It remains in a constant range of less than .025 from 1997-2016.
+* The fish stock plot shows the ratio of fishing exploitation rate (F/Fmsy) to the spawning potential ratio (rB/rBmsy) thrpugh time. We can see how the exploitation rate decreased in recent years. The spawning potential is below 1, but shows an increase in more recent years. 
+  * The plot isn't balanced, but the fishery appears to be on the road to recovery.
+
+```{r Data Summary}
+yearBiomassPlotBetter #Biomass through time plot
+
+exploitationThroughTime #fishing exploitation
+
+fishStockPlot #fish stock through time
+```
+
+
+2. Examine a scenario in which fishing restrictions were not implemented in 1999.
+We developed two models to display this; a *deterministic* model and a *stochastic model*.
+* With the deterministic model, the fish population without any restrictions faces a fast decline. It ends with a population of 2.54441 million fish remaining in the population. The population model begins with 6.238 million fish, but has a mere 2.54441 million fish remaining. This model uses the calculated arithmetic lambda from 1970-1999. It's safe to say this population highlights that the population will just continue to decrease, eventually going extinct. 
+* With the stochastic model, the outcome of without fishing restrictions varies more. 
+  * This scenario uses varying lambdas chosen randomly from the observed lambdas in the dataset. Of note is that this diregards lambdas listed as "NA".
+  * The outcome of the fishery here end up being lower than the actual observed values. 
+  * On average, from the various iterations of testing, we observe large variance between the potential outcome of the fishery. 
+    * Some outcomes exceeding a maximum 220 million fish, while others have a maximum of only 100 million fish. 
+    * Some outcomes have concerningly low fish counts, while other have a healthy minimum. 
+    * There's positive correlation fish models and negative correlation models. 
+  * Overall, there's no good way of determining whether the fish population would for certain plummet or not. The only thing that's certain is that the majority of this model's values are **always** lower than the observed values. 
+  * This means that **without fishing restrictions, the fish populations would've suffered.**
+```{r }
+noRestrictionsPlotDeterministic
+stochasticModelPlot
+
+```
+
+3. What might the future hold for Bocaccio?
+• Modify your stochastic model so that it starts in 2016 and projects out to 2030. Be
+sure to use the λ values from 2000 to 2016 (i.e. without fishing). What fraction of
+modeled iterations remain above the population low point of 1999?
+* I did 500 iterations.
+* Out of the 500, there were 14 iterations that remained above the low point of 1999, giving us a fraction of **0.028**. 
+
+• Add fishing into this model by incorporating an exploitation rate. In other words,
+what if a fraction of the fish are taken each year? What exploitation rate would
+result in a reasonably sustainable fishery (i.e. FMSY)?
+
+* I did 500 iterations again incorporating fishing.
+* Multiple scenarios: 
+  * *scenario 1: exploitation of .3* 
+    * Out of the 500, there were 2 iterations that remained above the low point of 1999, giving us a fraction of **0.004**. 
+  * *scenario 2: exploitation of .2* 
+    * Out of the 500, there were 4 iterations that remained above the low point of 1999, giving us a fraction of **0.008**. 
+  * *scenario 3: exploitation of .1* 
+    * Out of the 500, there were 14 iterations that remained above the low point of 1999, giving us a fraction of **0.028**. 
+  * *scenario 4: exploitation of .5* 
+    * Out of the 500, there were 1 iterations that remained above the low point of 1999, giving us a fraction of **0.002**. 
+* In conclusion, a lower exploitatiton rate of .1 allows for the most iterations to remain above the low point of 1999. This suggest the hatchery requires low explotation rate to ensure it's sustainable.
+
+```{r Assignment}
+startYear <- 2016
+endYear <- 2030
+time <- endYear - startYear
+
+iterations <- 500
+stochasticModelFuture <- array(0, c(time + 1, iterations))
+
+newLambdas <- fishDF$Obs.Lambda[31:length(fishDF$Obs.Lambda)] #new subset observed lambdas from 2002-2016
+fishingRate <- .3 #exploitation rate 
+for (it in 1:iterations) {
+  tempPopModel <- numeric()
+  tempPopModel[1] <- fishDF$N[length(fishDF$N)]  # pop 2016
+  
+  for (t in 1:time) {
+    lambdaChosen <- sample(newLambdas, 1)
+    
+    while (is.na(lambdaChosen)) { 
+      lambdaChosen <- sample(newLambdas, 1)
+    }
+        tempPopModel[t + 1] <- (tempPopModel[t]-(tempPopModel[t]*fishingRate)) * lambdaChosen
+    stochasticModelFuture[t + 1, it] <- tempPopModel[t + 1]
+  }
+}
+
+#fraction iters above pop low point 1999
+above1999 <- sum(stochasticModelFuture[, 1] > fishDF$N[30])
+fractionAbove1999 <- above1999 / iterations
+
+above1999
+fractionAbove1999
+
+```

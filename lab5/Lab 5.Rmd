@@ -1,0 +1,139 @@
+---
+title: "ES 220 Lab 5 - Wind Turbine Model"
+author: "Linda Dominguez"
+date: "Feb 21, 2024"
+output:
+  pdf_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+# This chunk installs weplot and helps with pdf formatting (and is excluded from knitting)
+source("setup/setup.R")
+```
+
+
+### Load hourly wind speed data for Block Island in 2021
+
+```{r Load_Data}
+load("Block Island 2021.RData")
+
+
+# List the variables in the loaded dataset
+dataset_variables <- names(data())
+
+# Print the list of variables
+print(dataset_variables)
+
+weplot(x=Date, y=Velocity.Wind, type='line', ylab= 'Velocity', color='red')
+```
+```{r span}
+timespan<- 1:336 #between first and 336th hr 
+weplot(x=Date[timespan], y=Velocity.Wind[timespan], type='line', ylab= 'Velocity', color='red')
+
+
+```
+
+### 1: Wind turbine model that assumed fixed efficiency and no wind speed restrictions
+
+```{r Wind_Model_1}
+allDates<- length(Date)
+# allDates
+newVelocities <- numeric()#made copy of velocity wind
+# newVelocities
+newHeight <- 100 #new is 100m
+oldHeight<- 10
+for(date in 1:allDates){
+  newVelocities[date]<- Velocity.Wind[date]*((newHeight/oldHeight)**(1/7))
+}
+# newVelocities
+# timespan<- 1:336 #between first and 336th hr 
+# weplot(x=Date[timespan], y=newVelocities[timespan], type='line', ylab= 'Velocity', xlab='Date', color='#13d6f8')
+
+electricPower <- numeric()
+
+efficiency<- .20 #this is a set num
+airDensity <- 1.2 #kg/m^2
+bladeArea <- 17907.86 #m^2
+for (date in 1:allDates){
+  windPower <- (1/2)*airDensity*bladeArea*((newVelocities[date])**3)
+  electricPower[date]<- (efficiency* windPower)/(1000000)
+}
+mean(electricPower) #mean power in mw aka megawatts
+sum(electricPower) #total power in mwh
+
+```
+```{r Model 1 plotting}
+
+weplot(x=Date, y=electricPower, type='point', ylab= 'electricPower', color='red')
+
+```
+```{r getting labels}
+
+ls()
+# > ls()
+#  [1] "add.weplot"        "allDates"          "dataset_variables"
+#  [4] "date"              "Date"              "newHeight"
+#  [7] "newVelocities"     "oldHeight"         "time"
+# [10] "timespan"          "Velocity.Wind"     "weplot"
+# [13] "weplot.Pop"
+
+```
+### 2: Wind turbine model that assumed variable efficiency and no wind speed restrictions
+
+```{r Wind_Model_2}
+# have to correct variable for efficiency
+maxPower <- 6 #MW @wind speed of 13m/s
+a<- -6.8409
+b<-.8043
+
+
+electricPower2 <- numeric()
+for (date in 1:allDates){
+  electricPower2[date]<- maxPower*((exp(a+b*newVelocities[date])/(1+(exp(a+b*newVelocities[date])))))
+}
+# electricPower2
+mean(electricPower2)
+sum(electricPower2)
+# > mean(electricPower2)
+# [1] 3.487604
+# > sum(electricPower2)
+# [1] 30551.41
+weplot(x=newVelocities, y=electricPower2, type='point', ylab= 'kw', xlab='Windspeed(m/s)', color='red')
+
+
+```
+
+
+### 2: Wind turbine model that assumed variable efficiency and wind speed restrictions
+
+```{r Wind_Model_3}
+cutInVelocity <- 3 #m/s
+cutOutVelocity <- 25 #m/s
+allDates<- length(Date)
+
+electricPower3 <- numeric()
+for (date in 1:allDates){
+  electricPower3[date]<- maxPower*((exp(a+b*newVelocities[date])/(1+(exp(a+b*newVelocities[date])))))
+  if (newVelocities[date] < cutInVelocity | newVelocities[date]>cutOutVelocity){
+    electricPower3[date]<- 0
+  }
+}
+electricPower3
+mean(electricPower3)
+sum(electricPower3)
+
+weplot(x=newVelocities, y=electricPower3, type='line', ylab= 'kw', xlab='Windspeed(m/s)', color='red')
+
+```
+
+```{r getting labels}
+weplot(x=Date, y=electricPower3, type='line')
+
+weplot(x=electricPower3, type='hist')
+
+#calculate max and 0 power 
+mean(electricPower3 ==0 ) *100
+mean(electricPower3 >5.9 ) *100
+```

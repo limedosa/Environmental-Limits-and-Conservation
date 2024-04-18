@@ -1,0 +1,240 @@
+---
+title: "ES 220 - Snowpacks in Space"
+date: "March 6, 2024"
+output: pdf_document
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+# This chunk installs weplot and helps with pdf formatting (and is excluded from knitting)
+source("setup/setup.R")
+source("setup/weplot.R")
+
+```
+
+
+
+
+```{r}
+
+
+# Load the function(s) contained in "My Functions.R" into the environment
+source("My Functions.R")
+
+# Use the my.mean function
+
+
+
+
+
+# Use the snow.mod function
+load("Lab 6 Data 2021.RData")  # need to load input data object before passing to the function
+
+
+
+
+```
+
+
+
+
+```{r}
+
+# # # This chunk loads data and makes figures across space (at one time) and across time (at one place) 
+
+# Load data and functions
+load("ERA5 California WY21.RData")  # Data from the ERA5 model for the 2021 water year in California
+load("World and US Outline.RData")  # Outline of world countries and US states as lat/lon coordinate polygons
+source("Lab 7 Functions.R")  # Defines functions for mapping etc.
+
+# Be sure to take a look at your environment to see what objects were just loaded
+
+
+# Make figures across space for a specific day of the water year (DWY)
+DWY <- 100  # Day of the water year. Will be used to index the 3rd dimension (time) of data objects
+Date[DWY]  # Show the date that corresponds to DWY
+
+# The map function displays values as colors (z) across x and y space
+#   -mask: will cover water (zero values) with a solid color
+#   -outline: draws polygons based on coordinates
+
+map(x = Lon, y = Lat, z = Temp[,,DWY], mask = Land, outline = US.Outline)
+map(x = Lon, y = Lat, z = Precip[,,DWY], mask = Land, outline = US.Outline)
+map(x = Lon, y = Lat, z = S[,,DWY], mask = Land, outline = US.Outline)
+map(x = Lon, y = Lat, z = SWE.Observed[,,DWY],mask = Land, outline = US.Outline,
+    zero.col = "darkseagreen")  # can add a color for zero values (useful for SWE)
+
+# Find which longitude and latitude index values are closest to the coordinates of Tuolumne Meadows
+coords <- get.coord.index(get.lon = -119.36,  # Desired longitude
+                          get.lat = 37.87,  # Desired latitude
+                          lon = Lon,  # Object containing longitude values
+                          lat = Lat)  # Object containing latitude values
+
+coords  # Show longitude and latitude index values
+Lon[coords[1]]  # Show closest matching longitude to Tuolumne Meadows
+Lat[coords[2]]  # Show closest matching latitude to Tuolumne Meadows
+
+weplot(x = Date, y = Temp[coords[1], coords[2],],
+       type = "line", ylab = "Temperature (C)",
+       title = "Tuolumne Meadows")
+
+weplot(x = Date, y = SWE.Observed[coords[1], coords[2],],
+       type = "line", ylab = "SWE (mm)",
+       title = "Tuolumne Meadows")
+
+
+```
+
+
+
+```{r}
+
+# # # This chunk applies the snowpack function to all locations (longitude,latitude) in the dataset 
+
+# Load the function by running the R "script" that defines it
+source("My Functions.R")
+
+Albedo <- 0.9  # Albedo - enter your value
+
+num.x <- length(Lon)  # Find the number of x values in the dataset (corresponds to longitude)
+num.y <- length(Lat)  # Find the number of y values in the dataset (corresponds to latitude)
+
+# Create arrays to store modeled values of SWE and snow melt
+SWE <- Temp * 0  # Creates an "empty" array of zeros that is the same size as the dataset
+Melt <- Temp * 0
+
+# Loop to go through all the rows (longitude) in the data
+for (x in 1:num.x){
+    
+  cat("\r", x)  # Display the current x value in the console; "\r" specifies on a single line
+  
+    # Loop to go through all the columns (latitude) in the data (for EACH row)
+    for (y in 1:num.y){
+        
+        # Only calculate the snowpack model if over land (not over ocean) - saves time!
+        if (Land[x,y] > 0){
+            
+            # Runs the snowpack function (SWE.Observed[x,y,1] provides the SWE starting value)
+            Model <- snow.mod(Precip = Precip[x,y,],
+                              Temp = Temp[x,y,],
+                              S = S[x,y,],
+                              Albedo = Albedo,
+                              Start.SWE = SWE.Observed[x,y,1])
+            
+            SWE[x,y,] <- Model$SWE  # Stores the modeled SWE value
+            Melt[x,y,] <- Model$Snowmelt  # Stores the modeled snow melt value
+            
+        } #end of IF to only calculate values on land
+    } #end of Y (Latitude) loop
+} #end of X (Longitude) loop
+
+# How did your model compare to the ERA5 model's SWE value?
+DWY <- 100  # Day of the water year. Will be used to index the 3rd dimension (time) of data objects
+
+map(x = Lon, y = Lat, z = SWE[,,DWY], mask = Land,  # Your model
+    outline = US.Outline, zero.col = "darkseagreen")  
+
+map(x = Lon, y = Lat, z = SWE.Observed[,,DWY], mask = Land,  # ERA5 model
+    outline = US.Outline, zero.col = "darkseagreen")
+
+
+# How did your model compare to the ERA5 model at Tuolumne Meadows?
+weplot(x = Date, y = list(SWE[coords[1], coords[2],],
+                          SWE.Observed[coords[1], coords[2],]),
+       type = "line",
+       group.names = c("My Model", "ERA5 Model"))
+
+# Show as scatterplot
+weplot(x = SWE.Observed[coords[1], coords[2],],
+       y = SWE[coords[1], coords[2],],
+       xlab = "ERA5 SWE (mm)",
+       ylab = "My SWE (mm)") +
+  geom_abline(intercept = 0, slope = 1) +
+  stat_smooth(method = lm, se = FALSE, color = "red")
+
+
+
+```
+
+
+```{r}
+
+# # # Create an animated gif of spatial/temporal data
+
+
+map.animate(x = Lon, y = Lat, z = SWE, mask = Land,
+            dates = Date, outline = US.Outline, zero.col = "darkseagreen",
+            dir.name = "SWE GIFs",
+            anim.name = "SWE Animation.gif")
+
+
+
+
+```
+
+```{r h}
+snowModel4 <- function(Precip, Temp, S, Albedo, Start.SWE) {
+    dates <- length(Temp)  # Corrected variable assignment
+    
+    # Initialize vectors
+    SWE <- numeric(dates + 1)
+    SWE[1] <- Start.SWE
+    snowfall <- numeric(dates)
+    rainfall <- numeric(dates)
+    snowMelt <- numeric(dates)
+    sublimation <- numeric(dates)
+    
+    for (t in 1:dates) {
+        if (Temp[t] > 0) {
+            snowfall[t] <- 0
+            rainfall[t] <- Precip[t]
+            snowMelt[t] <- (1.2) * Temp[t] + (0.226) * (1 - Albedo) * S[t]
+        } else {
+            snowfall[t] <- Precip[t]
+            rainfall[t] <- 0
+            snowMelt[t] <- 0
+        }
+        
+        sublimation[t] <- (0.043) * Temp[t] + (0.03) * (1 - Albedo) * S[t]
+        
+        # Ensure sublimation and snowMelt are not negative
+        if (sublimation[t] < 0) {
+            sublimation[t] <- 0
+        }
+        if (snowMelt[t] < 0) {
+            snowMelt[t] <- 0
+        }
+        
+        # Ensure the sum of snowMelt and sublimation doesn't exceed SWE
+        if ((snowMelt[t] + sublimation[t]) > SWE[t]) {
+            sublimation[t] <- 0
+            snowMelt[t] <- SWE[t]
+        }
+        
+        # Update SWE for the next time step
+        SWE[t + 1] <- SWE[t] + snowfall[t] - snowMelt[t] - sublimation[t]
+    }
+    
+    # Trim the SWE vector to match the length of Temp
+    SWE <- SWE[1:dates]
+    
+    return(list(SWE = SWE, snowMelt = snowMelt, rainfall = rainfall))
+}
+
+# Example call to the snowModel4 function
+p <- snowModel4(Precip = Precip, Temp = Temp, S = S, Albedo = 0.85, Start.SWE = 0)
+# Plot SWE
+plot(x=Date, y= p$SWE, type = "l", col = "blue", xlab = "Time", ylab = "Snowpack SWE (mm)", main = "Snowpack SWE Over Time")
+
+# Add lines for snowMelt and rainfall if needed
+lines(p$snowMelt, col = "red")
+lines(p$rainfall, col = "green")
+
+# Add legend
+legend("topright", legend = c("SWE", "Snow Melt", "Rainfall"), col = c("blue", "red", "green"), lty = 1)
+
+# Add grid
+grid()
+
+```

@@ -1,0 +1,176 @@
+---
+title: "ES 220 Lab 6"
+author: "YOUR NAME HERE"
+date: "Feb 28 2024"
+output:
+  pdf_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+# This chunk installs weplot and helps with pdf formatting (and is excluded from knitting)
+source("setup/setup.R")
+
+```
+
+
+### Load and examine data from Tuolumne Meadows, CA during the 2021 Water Year
+
+```{r Load_Data}
+load("Lab 6 Data 2021.Rdata")
+# > ls()
+#  [1] "add.weplot"   "Date"         "DOY"          "Precip"       "S"
+#  [6] "SWE.Observed" "Temp"         "weplot"       "weplot.Pop"   "WY"
+
+#date x precipitation
+precipDateModel<-(weplot(x=Date, y=Precip, type='line'))
+# precipDateModel
+
+#SWE Model
+SWEDateModel<-(weplot(x=Date, y=SWE.Observed, type='line'))
+# SWEDateModel
+
+#Day x Snow Model
+SDateModel<-(weplot(x=Date, y=S, type='line'))
+# SDateModel
+
+#day x temp model 
+tempModel<-(weplot(x=Date, y=Temp, type='line'))
+# tempModel
+```
+
+
+### Model 1: Snowpack that only accumulates snow and does not melt
+
+```{r Model_1}
+load("Lab 6 Functions.RData")
+# print(melt.dates(SWE.Observed,Date)) #"2021-04-24"
+#start w/ water entering as precipitation => determine what happens to water through time
+Time <- length(Date)
+warmDaySnowVal <- 0 #no snow on warm day 
+waterThroughTime<- numeric()
+#MODEL 1: Determine snowfall/rainFall and add daialy snowfall to snowpack SWE
+SWE<- 0 #setting snowpack to 0
+
+snowfall<- numeric()
+rainFall<- numeric()
+
+# "Precip"       "S"
+
+
+for(t in 1:Time){
+  tempToday<- tempToday
+  if(tempToday<=0){
+
+    snowfall[t]<- Precip[t]
+    rainFall[t]<- 0
+    
+  }
+  else{
+    snowfall[t]<- 0
+    rainFall[t]<- Precip[t]
+  }
+  SWE[t+1]<- SWE[t] + snowfall[t]
+}
+SWE <- SWE[1:Time]
+
+# print(length(SWE))
+
+weplot(x=Date, y=SWE)
+```
+
+
+### Model 2: Incorporating *potential* snowMelt and sublimation
+
+```{r Model_2}
+SWE2<-0
+snowfall2<- numeric()
+rainFall2<- numeric()
+
+albedo<- .85
+
+for(t in 1:Time){
+  tempToday<- tempToday
+  # print(tempToday)
+  solarRaditionToday<- S[t]
+  # print(solarRaditionToday)
+  sublimation<- (.043*tempToday)+.03*(1-albedo) * solarRaditionToday
+  # print(sublimation)
+  snowMelt<-(1.2*tempToday)+.226*(1-albedo)*solarRaditionToday
+  # print(snowMelt)
+  if(tempToday<=0){
+    snowfall2[t]<- Precip[t]
+    # print(snowfall2[t])
+    rainFall2[t]<- 0
+  }
+  else{
+    snowfall2[t]<- 0
+    rainFall2[t]<- Precip[t]
+    # print(rainFall2[t])
+  }
+  SWE2[t+1]<- SWE2[t] + snowfall[t] - snowMelt - sublimation
+}
+SWE2 <- SWE2[1:Time]
+# print((SWE2))
+
+weplot(x=Date, y=SWE2)
+```
+
+
+### Model 3: A "balanced" model with constraints on snowMelt and sublimation
+
+```{r Model_3}
+
+SWE3<-0
+snowfall3<- numeric()
+rainFall3<- numeric()
+
+albedo<- .85
+sumPrecipitation<- 0
+
+totalSnowFall <- numeric()
+totalrainFall<- numeric()
+totalSublimation<- numeric()
+for(t in 1:Time){
+  tempToday<- tempToday
+  # print(tempToday)
+  solarRaditionToday<- S[t]
+  # print(solarRaditionToday)
+  sublimation<- (.043*tempToday)+.03*(1-albedo) * solarRaditionToday
+  totalSublimation<- totalSublimation+ sublimation
+  # print(sublimation)
+  snowMelt<-(1.2*tempToday)+.226*(1-albedo)*solarRaditionToday
+  # print(snowMelt)
+  if(tempToday<=0){
+    totalSnowFall<- totalSnowFall + Precip[t]
+    snowfall2[t]<- Precip[t]
+    # print(snowfall2[t])
+    rainFall2[t]<- 0
+  }
+  else{
+    totalrainFall <- totalrainFall + Precip[t]
+    snowfall2[t]<- 0
+    rainFall2[t]<- Precip[t]
+    # print(rainFall2[t])
+  }
+  sumPrecipitation<- totalrainFall + totalSnowFall + totalSublimation + SWE3[t]
+  SWE3[t+1]<- SWE3[t] + snowfall[t] - snowMelt - sublimation
+}
+
+
+SWE3 <- SWE3[1:Time]
+
+weplot(x=Date, y=SWE3)
+
+```
+
+
+### Quantitatively validate your model by comparing to observed values
+
+```{r Validation}
+
+
+
+
+```

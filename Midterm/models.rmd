@@ -1,0 +1,34 @@
+# Load necessary functions
+source("solar panel functions.R")
+
+# Define panel tilt angle and aspect
+Tilt <- 25 # degrees from horizontal
+Aspect <- 155 # degrees (Southeast)
+
+# Create an empty object for incident solar radiation
+Incident.Solar.Radiation.Wm2 <- numeric()
+
+# Loop
+for (t in 1:Time) {
+  # Calculate sun elevation and azimuth
+  Elev <- sun_elevation(6, Hour[t]) # calculates sun elevation 
+  Azi <- sun_azimuth(6, Hour[t]) # calculates sun azimuth
+  
+  # Calculate radiation falling onto the panel
+  Incident.Solar.Radiation.Wm2[t] <- get_incident_rad(Solar.Radiation.Wm2[t], 
+                                                      Tilt, Aspect, 
+                                                      Elev, Azi)
+  
+  # Calculate electricity produced
+  Elec.Model.W[t] <- Total.Area * Incident.Solar.Radiation.Wm2[t] * Efficiency
+}
+
+# Convert from watts to kilowatts
+Elec.Model.kW <- Elec.Model.W / 1000 # watts to kilowatts
+
+# Compare modeled and observed power
+weplot(x = Hour, y = list(Elec.Observed.kW, Elec.Model.kW), 
+       type = "line", 
+       xlab = "Hour of the day", 
+       ylab = "Electrical power (kW)")
+

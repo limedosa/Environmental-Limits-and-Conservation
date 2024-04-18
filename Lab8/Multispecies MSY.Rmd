@@ -1,0 +1,81 @@
+---
+title: "Multi-Species Model"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+# This chunk installs weplot and helps with pdf formatting (and is excluded from knitting)
+source("setup/setup.R")
+```
+
+
+```{r}
+Time <- 100
+
+#Species A
+N_a <- 4000  #Starting population size
+Lambda_a <- 1.1  #Maximum growth rate
+K_a <- 8000  #Carrying capacity (without species B)
+Take_a <- 0  #Annual fish catch
+
+#Species B
+N_b <- 4000  #Starting population size
+Lambda_b <- 1.08  #Maximum growth rate
+K_b <- 5000  #Carrying capacity (without species B)
+Take_b <- 0  #Annual fish catch
+
+#Competitive impact relative to effect on own species
+Impact_a_on_b <- 0
+Impact_b_on_a <- 0
+
+#MSY for species A alone
+# MSY_a <- (K_a/2)*(Lambda_a-1)*(1-((K_a/2)/K_a))
+MSY_a <- (K_a/4)*(Lambda_a-1)
+
+#MSY for species B alone
+# MSY_b <- (K_b/2)*(Lambda_b-1)*(1-((K_b/2)/K_b))
+MSY_b <- (K_b/4)*(Lambda_b-1)
+
+
+for (t in 1:Time){
+  
+  # # Model for Species A; splitting logistic model into two lines# #
+  
+  Comp_a <- 1 - ( (N_a[t] + Impact_b_on_a*N_b[t]) / K_a)  # "check" term
+  
+  N_a[t+1] <- N_a[t] + N_a[t]*(Lambda_a-1)*Comp_a  #Logistic model
+  
+  N_a[t+1] <- N_a[t+1] - Take_a  #Fishing catch
+  
+  if (N_a[t+1] < 1) N_a[t+1] <- 0  #Can't take below 1 fish
+  
+  
+  # # Model for Species B; splitting logistic model into two lines # #
+  
+  Comp_b <- 1 - ( (N_b[t] + Impact_a_on_b*N_a[t]) / K_b)  # "check" term
+  
+  N_b[t+1] <- N_b[t] + N_b[t]*(Lambda_b-1)*Comp_b  #Logistic model
+  
+  N_b[t+1] <- N_b[t+1] - Take_b  #Fishing catch
+  
+  if (N_b[t+1] < 1) N_b[t+1] <- 0  #Can't take below 1 fish
+  
+  
+  
+}
+
+
+weplot(x = 0:Time, y = list(N_a, N_b), type = "line",
+       ylim = c(0,10000), xlab = "Time", ylab = "Population size",
+       group.names = c("Species A", "Species B")) +
+  
+  geom_hline(yintercept = c(K_a, K_b), linetype = "dashed", size = 0.5,
+             color = c(rgb(248, 118, 109, maxColorValue = 255),
+                       rgb(0, 191, 196, maxColorValue = 255))) +
+  labs(title = "Predicted single-species MSY values:",
+       subtitle = paste("A =", MSY_a, "   B =", MSY_b))
+
+
+```

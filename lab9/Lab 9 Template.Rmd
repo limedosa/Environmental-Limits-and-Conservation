@@ -1,0 +1,300 @@
+---
+title: "Lab 9 - Matrix Modeling"
+author: "Linda Dominguez"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+# This chunk installs weplot and helps with pdf formatting (and is excluded from knitting)
+source("setup/setup.R")
+source("setup/weplot.R")
+load("Heliconia.RData")
+```
+
+
+## Part 1 – A perennial plant with a simple life cycle
+
+### (1a) Define your projection matrix
+
+```{r 1a}
+# A<- c(0, 2.4, 7.2,.2, .21, .06,0, .11, .42)
+#turn into matrix w 3 rows and cols 
+A <- matrix(c(0, 2.4, 7.2, .2, .21, .06, 0, .11, .42), nrow = 3, byrow = TRUE)
+
+#add names to rows & col 
+rownames(A)<- c("Sdlg", 'Sm', 'Lg')
+colnames(A)<- c("Sdlg", 'Sm', 'Lg')
+
+A
+
+```
+
+
+### (1b) Make a model that projects this population 10 years into the future
+
+```{r 1b}
+#represent N as matrix w rows = stage class, cols = time
+
+time<- 10 #bc we want 10 yr into future => same as Time
+rowCol <- c(3, time+1) #same as Row.col
+N<- array(0, rowCol) #makes 2D array of zeros
+rownames(N)<- c("Sdlg", 'Sm', 'Lg') #names stafes
+colnames(N)<- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+#insert staring pop 
+N[,1]<- c(290, 55, 12)
+N
+# N[6] <- 16 #sets individual at 6th place  to be 16 e.g. => just exploring to learn R better 
+
+
+populationProjection<- function(time, startingPop){
+  rowCol <- c(3, time+1) #same as Row.col
+  N<- array(0, rowCol) #makes 2D array of zeros
+  rownames(N)<- c("Sdlg", 'Sm', 'Lg') #names stafes
+  colnames(N)<- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+  #insert staring pop 
+  N[,1]<- c(startingPop)
+  for (t in 1:time){
+  N[,t+1]<- A%*%N[,t]}
+
+  return (N)
+}
+
+startPop<- c(290, 55, 12)
+N <- populationProjection(time, startPop)
+N
+
+
+```
+
+
+### (1c) What is the projected population size vector after 10 years?
+The projected population sizes are: 
+  Sdlg        Sm        Lg
+217.73375  56.75444  10.97858
+
+```{r 1c}
+projectedN10yr<- N[,11] #11 bc/ it starts at 1 not 0 
+projectedN10yr
+#   Sdlg        Sm        Lg
+# 217.73375  56.75444  10.97858
+
+
+```
+
+
+### (1d) Make a figure showing the numbers of each stage class through time
+
+```{r 1d}
+stagesThroughTimePlot<- weplot.MM(N) #weplot.MM is used to plot matrix model 
+stagesThroughTimePlot
+
+
+```
+
+
+### (1e) What is the long-term Lambda value for this population based on your one year of data?
+
+```{r 1e}
+totalN <- apply(N, 2, sum) #applies sum funct between cols 
+longTermLambda<- totalN[time+1]/totalN[time]
+longTermLambda
+
+#second way of finding lambda 
+longTermLambda2<- as.numeric(eigen(A)$values[1])
+longTermLambda2
+
+getLambda<- function(x){
+  return(as.numeric(eigen(x)$values[1]))
+  }
+longTermLambda2_1<-getLambda(A)
+longTermLambda2_1
+
+
+```
+
+
+### (1f) Examine two scenarios where your population begins with very different starting population size vectors
+* Both Scenario 1 and Scenario 2 have fairly consistent populations.
+* Scenario 2 has population magnitude in the thousands, ranging from whar appears to be (0, 36000).
+* Scenario 1 has population magnitude in the thousands too, but ranging from whar appears to be (0, 5000).
+* Scenario 1 which has a larger starting Seedling population ends up having a population about 1/10 of the magnitude of Scenario 2 which started with a bigger Large Reproductive population.
+* Scenario 2 shows that a bigger Large Reproductive population leads to a larger boom i population.
+
+```{r 1f}
+
+#For each scenario, be sure to include text that *interprets* why you think the population sizes behave the way that they do.
+scenario1 <- populationProjection(10, c(5000, 55, 12))
+scenario1
+scenario2 <- populationProjection(10, c(290, 55, 5000))
+scenario2
+
+#plotting 
+scenario1Plot<- weplot.MM(scenario1, title='Scenario1')
+scenario2Plot <- weplot.MM(scenario2, title='Scenario 2')
+
+```
+
+
+## Part 2 – An overlooked part of the lifecycle?
+
+### (2a) Modify your projection matrix (A) from Part 1 to incorporate a seed bank
+
+```{r 2a}
+
+
+populationProjection2 <- function(time, startingPop, aValues){
+
+  A <- matrix(c(aValues), nrow = 4, byrow = TRUE)
+
+  #add names to rows & col 
+  rownames(A)<- c("Dormant","Sdlg", 'Sm', 'Lg')
+  colnames(A)<- c("Dormant","Sdlg", 'Sm', 'Lg')
+
+  rowCol <- c(4, time+1) #same as Row.col
+  N<- array(0, rowCol) #makes 2D array of zeros
+  rownames(N)<- c("Dormant", "Sdlg", 'Sm', 'Lg') #names stafes
+  colnames(N)<- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+  #insert staring pop 
+  N[,1]<- c(startingPop)
+  for (t in 1:time){
+  N[,t+1]<- A%*%N[,t]}
+  print(c("lambda ", getLambda(A)))
+  return (N)
+}
+
+
+Avalues<- c(.22, 0, 9.1, 18.5, .1, 0, 2.4, 7.2, 0, .2, .21, .06, 0, 0, .11, .42)
+startingPop <- c(1090, 290, 55, 12)
+seedBankPop <- populationProjection2(10, startingPop, Avalues)
+seedBankPop
+
+
+```
+
+
+### (2b) After including the presence of a seed bank, what is the revised Lambda value for the population?
+The revised lambda is: 1.10707276020224.
+```{r 2b}
+
+
+
+```
+
+
+### (2c) Create a figure of the projected numbers for all stage classes over 10 years
+
+```{r 2c}
+dormantPlot <- weplot.MM(seedBankPop, title='Projected Population Over 10 years Including Dormant Seeds')
+
+
+
+```
+
+
+## Part 3 – Habitat fragmentation in the tropics
+
+### (3a) Use the three different projection matrices (A.Sm, A.Med, A.Con) to determine the estimated Lambda values in the different sized forest habitats.
+Small Plot Lambda:0.989879, Medium Plot Lambda:1.002689, Continuous Plot Lambda:1.029313
+```{r 3a}
+load('Heliconia.RData')
+# ls()
+#finding lambdas 
+smallPlotLam <- getLambda(A.Sm)
+smallPlotLam
+medPlotLam <- getLambda(A.Med)
+medPlotLam
+continuousPlotLam<- getLambda(A.Con)
+continuousPlotLam
+# > smallPlotLam
+# [1] 0.989879
+# > medPlotLam
+# [1] 1.002689
+# > continuousPlotLam
+# [1] 1.029313
+```
+
+
+### (3b) Create a population model for the smallest habitat fragment (1 ha) that projects the population out 10 years
+
+```{r 3b}
+
+
+populationProjection3 <- function(time, aValues, rowNames){
+  A <- aValues
+
+  rowCol <- c(6, time+1) #same as Row.col
+  N<- array(0, rowCol) #makes 2D array of zeros
+  rownames(N)<- rowNames #get names from N.Sm
+  colnames(N)<- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+
+  #insert staring pop 
+  N[,1]<- rowNames
+  for (t in 1:time){
+  N[,t+1]<- A%*%N[,t]}
+  print(c("lambda ", getLambda(A)))
+  return (N)
+}
+A<- A.Sm #matrix data from smallest habitat fragment (A.Sm)
+rowNames <- rownames(N.Sm)
+HeliconaModel <- populationProjection3(10, A, rowNames)
+HeliconaModel
+
+
+```
+
+
+### (3c) Make a plot showing the projected numbers for all stage classes out for 10 years
+
+```{r 3c}
+
+HeliconaModelPlot <- weplot.MM(HeliconaModel, title = "Heliconia Acuminata 1 ha Model")
+
+
+
+```
+
+
+### 3d) Let’s incorporate more detail into the values that represent reproduction in Heliconia (i.e. the first row of the projection matrix)
+
+```{r 3d}
+
+
+
+
+```
+
+
+### (3e) Assuming that total seed production remains the same, what germination probability would give Lambda = 1.0 in the forest fragments?
+
+```{r 3e}
+
+
+
+
+```
+
+
+### (3f) Modify your model so that you can incorporate the (external) addition of seeds into the plot each year.  How many seeds would you have to add each year to have a stable population after 10 years?
+
+```{r 3f}
+
+
+
+
+```
+
+
+### (3g) How many seeds must be dispersing into the plots in order to produce an observed Lambda value of 1.06 one year later?
+
+```{r 3g}
+
+
+
+
+```
