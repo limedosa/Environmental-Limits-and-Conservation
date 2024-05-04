@@ -1,0 +1,81 @@
+---
+title: "Final Synthesis"
+author: "NAME"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r, include = FALSE}
+# This chunk installs weplot and helps with pdf formatting (and is excluded from knitting)
+source("setup/setup.R")
+
+```
+
+
+### (1b) Construct the population projection matrix and calculate the growth rate
+
+```{r}
+
+#Vital Rates
+S1 <- 0.706 #1st year survival
+S2 <- 0.650 #Juvenile survival
+S3 <- 0.750 #Sub-adult survival
+S4 <- 0.823 #Adult survival
+M2 <- 0.398 #Fraction of juvenile survivors that become sub-adults
+M3 <- 0.108 #Fraction of sub-adult survivors that become adults
+E <- 2.5    #Per capita adult fecundity (number of eggs)
+
+#Creates an "empty" 4x4 matrix of zeros
+A <- array(0, c(4,4))
+
+# # # Define matrix elements from vital rates below # # #
+
+#Here is an example for the Egg to Juvenile Transition
+A[2,1] <- S1  
+
+#Continue building the matrix
+
+
+
+#Calculate the population growth rate
+
+
+
+```
+
+
+### (1d) Add in the effect of poaching
+
+
+```{r}
+
+#Be sure to set the poaching level to 0.05 (or 5%)
+
+
+
+#Copy in the code from above and alter it to incorporate the effect of poaching
+
+
+
+
+#Calculate the population growth rate
+
+
+
+```
+
+
+### (1e) What is the sensitivity of Lambda to poaching?
+
+Note that you do not need to answer this question in R, but you can if you want to
+
+
+```{r}
+
+#Calculate the sensitivity value associated with poaching
+
+
+
+```

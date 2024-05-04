@@ -1,0 +1,300 @@
+---
+title: "Final Project Taxus Floridina"
+author: "Linda Dominguez"
+output: pdf_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r, include = FALSE}
+# This chunk installs weplot and helps with pdf formatting (and is excluded from knitting)
+source("setup/setup.R")
+source("setup/weplot.R")
+load("Matrix Data.RData")
+```
+
+```{r plotting}
+ls()
+A<- A.mat
+A.mat[1]
+
+A.classes[1]
+
+# weplot.MM(A.mat[1] ,A.classes[1])
+
+
+averageMatrix <- A.mat[[1]]
+averageMatrix
+classes <- A.classes[[9]]
+classes
+weplot(averageMatrix)
+
+
+rownames(averageMatrix)<-c("Seedling 1yr", 'Seedling 2yr', 'Seedling 3yr', 'DBh2-4', 'DBh4-8', 'DBh8-16', 'DBh16-32', 'DBh32-64', 'DBh64') 
+weplot.MM(averageMatrix, title= "Mean Abundance Matrix for Taxus Floridana 1995-1999")
+
+
+
+```
+
+
+### Model that projects this population 10 years into the future
+
+```{r 1b}
+A<- A.mat[[1]]
+time<- 10 #bc we want 10 yr into future => same as Time
+rowCol <- c(3, time+1) #same as Row.col
+N<- array(0, rowCol) #makes 2D array of zeros
+rownames(N)<- c("Sdlg", 'Sm', 'Lg') #names stafes
+colnames(N)<- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+#insert staring pop 
+N[,1]<- c(290, 55, 12)#TODO: NEED TO CHANGE THIS NUM
+N
+
+
+populationProjection<- function(time, startingPop){
+  rowCol <- c(9, time+1) #same as Row.col
+  N<- array(0, rowCol) #makes 2D array of zeros
+  rownames(N)<- c("Seedling 1yr", 'Seedling 2yr', 'Seedling 3yr', 'DBh2-4', 'DBh4-8', 'DBh8-16', 'DBh16-32', 'DBh32-64', 'DBh64') #names stages
+  colnames(N)<- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+  #insert staring pop 
+  N[,1]<- c(startingPop)
+  for (t in 1:time){
+  N[,t+1]<- A%*%N[,t]}
+
+  return (N)
+}
+
+startPop<- c(290, 55, 12)
+N <- populationProjection(time, startPop)
+N
+
+weplot.MM(N, title='Projected Population for Taxus Floridina ')
+
+```
+
+### Long-term Lambda value for this population based on average data:
+
+```{r lambda value year 1}
+
+getLambda<- function(x){
+  return(as.numeric(eigen(x)$values[1]))
+  }
+longTermLambda<-getLambda(averageMatrix)
+longTermLambda
+```
+
+
+### Taxus Floridina pop in 20 years
+```{r Population in 20 years}
+startingPop <- c(2000, 7000, 1200, 70, 10, 10, 20, 20, 20) #TODO CHANGE THIS
+years <- 20 #bc we want 20 yr into future 
+
+popMatrixProjecton <- matrix(0, ncol = years, nrow = length(startingPop))
+colnames(popMatrixProjecton) <- 1:years #renaming col and rows 
+rownames(popMatrixProjecton) <- rownames(A)
+
+
+popMatrixProjecton[,1] <- startingPop #putting starting pop in year 1
+
+
+for (year in 2:years) { #had to be 2 bc crashed w one 
+  popMatrixProjecton[,year] <- A %*% popMatrixProjecton[,year-1]
+}
+
+#plotting 
+ weplot.MM(popMatrixProjecton, title="Population Projection of Taxus Floridina")
+
+```
+
+
+### Stochastic 3D modeling 
+
+```{r stochastic 3D model Rock Creek}
+time <- 20 #don't go past 50(pops will get too small)
+iterations <- 500
+N<- array(0, c(nrow(A), time+1, iterations))
+rownames(N)<- c("Seedling 1yr", 'Seedling 2yr', 'Seedling 3yr', 'DBh2-4', 'DBh4-8', 'DBh8-16', 'DBh16-32', 'DBh32-64', 'DBh64') #names stages
+# N
+
+#starts with 100 total pop and distributes it through stages 
+N[,1,]<- N.start(A.mat[[2]], 100) #gives breakdown of pop distributions to be(have most seedlings=> they're percentages)
+# N[1,1,]<- 100 #starts with 100 seedlings
+# N[2,2,]<- 100
+
+#######################################
+####NEXT STEPS:
+#think abt how diff starting pops affect the overall projection
+#think abt which matrices to use 
+
+######################################
+# N~\
+
+
+for(i in 1:iterations){
+for (t in 1:time){
+matrixIndeces <- c(3:6)#matrix indices for rock creek CHANGE THIS TO BE 8-11 and 13-16 for other two pops 
+useMatrix<- sample(matrixIndeces,1) #sample(which matrix index to sample from, how many matrices to sample)
+A<- A.mat[[useMatrix]]
+
+#takes first 3 cols of A(which is .234 here) & considers what would happen if seedling survival rate was increased by x%
+#TODO find proportion of seedling survival required to keep pop at 1.0 lamb
+#A[,1:3] <- A[,1:3] * 2.8
+
+N[,t+1, i]<- A%*%N[,t,i]
+}
+}
+
+totalPopulation <- get.total.N(N)
+medPopulation <- median.N(N)
+
+RockCreek <- totalPopulation
+
+weplot(x = 0:time, y = totalPopulation, title="Population Dynamics in Stochastic 3D Modeling of Rock Creek", ylab="Total Population", xlab="time", ylim = c(0, 300), transparency = 0.8) + #plots the total number in the whole 
+add.weplot(x = 0:time, y=medPopulation, type = "line", color = "red")
+  
+
+# weplot(totalPopulation, title="Population Dynamics in Stochastic 3D Modeling of Rock Creek", ylab="Total Population", xlab="time") #plots the total number in the whole 
+
+
+#########useful for probablistic outcome of pops######
+extinct.prob(N, 20) #prob % N goes below 20% of starting pop after 20 yr (fraction of lines in N go below 20)
+#compare this pop with other 2 pops & look at their extinction probs
+#play around w diff values
+#next step: remove.extinct(N, limit, time, replace) 
+
+
+#N
+#N[,2,]
+#weplot.MM(N[,9,], title = 'Stochastic Population at time 9')
+```
+
+
+
+
+```{r stochastic 3D model Long Branch}
+time <- 20 #don't go past 50(pops will get too small)
+iterations <- 500
+N<- array(0, c(nrow(A), time+1, iterations))
+rownames(N)<- c("Seedling 1yr", 'Seedling 2yr', 'Seedling 3yr', 'DBh2-4', 'DBh4-8', 'DBh8-16', 'DBh16-32', 'DBh32-64', 'DBh64') #names stages
+# N
+
+#starts with 100 total pop and distributes it through stages 
+N[,1,]<- N.start(A.mat[[7]], 100) #gives breakdown of pop distributions to be(have most seedlings=> they're percentages)
+# N[1,1,]<- 100 #starts with 100 seedlings
+# N[2,2,]<- 100
+
+#######################################
+####NEXT STEPS:
+#think abt how diff starting pops affect the overall projection
+#think abt which matrices to use 
+
+######################################
+# N~\
+
+
+for(i in 1:iterations){
+for (t in 1:time){
+matrixIndeces <- c(8:11)#matrix indices for rock creek CHANGE THIS TO BE 8-11 and 13-16 for other two pops 
+useMatrix<- sample(matrixIndeces,1) #sample(which matrix index to sample from, how many matrices to sample)
+A<- A.mat[[useMatrix]]
+A[,1:3] <- A[,1:3] * 1.4#some percentage
+N[,t+1, i]<- A%*%N[,t,i]
+}
+}
+
+
+totalPopulation <- get.total.N(N)
+medPopulation <- median.N(N)
+
+weplot(x = 0:time, y = totalPopulation, title="Stochastic Population of Long Branch w/ Seedling 1.4% Survival Increase", ylab="Total Population", xlab="time", ylim = c(0, 300), transparency = 0.8) + #plots the total number in the whole 
+add.weplot(x = 0:time, y=medPopulation, type = "line", color = "red")
+
+#########useful for probablistic outcome of pops######
+extinct.prob(N, 20) #prob % N goes below 20% of starting pop after 20 yr (fraction of lines in N go below 20)
+#compare this pop with other 2 pops & look at their extinction probs
+#play around w diff values
+#next step: remove.extinct(N, limit, time, replace) 
+
+
+#N
+#N[,2,]
+#weplot.MM(N[,9,], title = 'Stochastic Population at time 9')
+```
+
+
+
+
+
+```{r stochastic 3D model Beaverdam Creek}
+time <- 20 #don't go past 50(pops will get too small)
+iterations <- 500
+N<- array(0, c(nrow(A), time+1, iterations))
+rownames(N)<- c("Seedling 1yr", 'Seedling 2yr', 'Seedling 3yr', 'DBh2-4', 'DBh4-8', 'DBh8-16', 'DBh16-32', 'DBh32-64', 'DBh64') #names stages
+# N
+
+#starts with 100 total pop and distributes it through stages 
+N[,1,]<- N.start(A.mat[[12]], 100) #gives breakdown of pop distributions to be(have most seedlings=> they're percentages)
+# N[1,1,]<- 100 #starts with 100 seedlings
+# N[2,2,]<- 100
+
+#######################################
+####NEXT STEPS:
+#think abt how diff starting pops affect the overall projection
+#think abt which matrices to use 
+
+######################################
+# N~\
+
+
+for(i in 1:iterations){
+for (t in 1:time){
+matrixIndeces <- c(13:16)#matrix indices for rock creek CHANGE THIS TO BE 8-11 and 13-16 for other two pops 
+useMatrix<- sample(matrixIndeces,1) #sample(which matrix index to sample from, how many matrices to sample)
+A<- A.mat[[useMatrix]]
+A[,1:3] <- A[,1:3] * 3.6#some percentage
+
+N[,t+1, i]<- A%*%N[,t,i]
+}
+}
+
+
+
+totalPopulation <- get.total.N(N)
+medPopulation <- median.N(N)
+
+weplot(x = 0:time, y = totalPopulation, title="Stochastic Population of Beaverdam Creek w/ Seedling 3.6% Survival Increase", ylab="Total Population", xlab="time", ylim = c(0, 300), transparency = 0.8) + #plots the total number in the whole 
+add.weplot(x = 0:time, y=medPopulation, type = "line", color = "red")
+
+
+#########useful for probablistic outcome of pops######
+extinct.prob(N, 20) #prob % N goes below 20% of starting pop after 20 yr (fraction of lines in N go below 20)
+#compare this pop with other 2 pops & look at their extinction probs
+#play around w diff values
+#next step: remove.extinct(N, limit, time, replace) 
+
+
+#N
+#N[,2,]
+#weplot.MM(N[,9,], title = 'Stochastic Population at time 9')
+```
+
+
+
+
+
+### fine tuning => finding ideal matrix to sample from: 
+```{r matrix plotting}
+
+plotMatrix <- function(i){
+    A <- A.mat[[i]]
+    
+    weplot.MM(A)
+    print(A)
+}
+
+plotMatrix(3)
+
+```
